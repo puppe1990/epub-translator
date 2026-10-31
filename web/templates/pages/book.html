@@ -1,0 +1,30 @@
+{{ define "content" }}
+<section class="amarra-rise mx-auto max-w-6xl py-6">
+  <nav class="font-mono text-[10px] uppercase tracking-[0.22em] text-foam/40">
+    <a href="/" class="hover:text-foam transition-colors">← Livros</a>
+  </nav>
+
+  <header class="mt-3 flex flex-wrap items-end justify-between gap-4">
+    <div class="min-w-0">
+      <h1 class="font-serif text-3xl leading-tight text-foam">{{ .Book.Title }}</h1>
+      <p class="mt-1 font-mono text-xs text-foam/50">{{ .Book.Author }} · {{ .Book.SourceLanguage }} → {{ .Book.TargetLanguage }} · {{ .Book.Filename }}</p>
+    </div>
+    <div class="flex flex-wrap items-center gap-3">
+      <form action="/books/{{ .Book.ID }}/retry" method="post">
+        <button type="submit" class="border border-copper/50 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-copper hover:bg-copper hover:text-ink transition-colors">{{ if .Book.HasPending }}Retomar / retentar{{ else }}Rodar de novo{{ end }}</button>
+      </form>
+      <a href="/books/{{ .Book.ID }}/download" class="bg-copper px-4 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-ink hover:bg-foam transition-colors">Baixar EPUB traduzido ↓</a>
+    </div>
+  </header>
+
+  <div id="book-progress" class="mt-6">{{ .ProgressHTML }}</div>
+
+  <div id="chapter-list" class="mt-4 overflow-x-auto border border-foam/10 bg-ink/40">{{ .ChapterListHTML }}</div>
+
+  <p class="mt-4 font-mono text-[10px] uppercase tracking-[0.2em] text-foam/40">
+    O download já sai com os capítulos traduzidos até agora; o restante permanece no idioma original.
+  </p>
+
+  <div data-amarra-stream="/books/{{ .Book.ID }}/events" hidden></div>
+</section>
+{{ end }}
