@@ -1,34 +1,55 @@
 {{ define "content" }}
-<section class="amarra-rise mx-auto max-w-3xl py-8">
+<section class="amarra-rise mx-auto max-w-4xl py-8">
   <p class="font-mono text-[11px] uppercase tracking-[0.32em] text-copper">Provedor de tradução</p>
   <h1 class="mt-2 font-serif text-3xl leading-tight text-foam">Configurações</h1>
-  <p class="mt-3 text-sm leading-relaxed text-foam/60">
-    Qualquer endpoint compatível com OpenAI serve: OpenAI, Gemini, OpenRouter, Groq. A configuração salva aqui vence as variáveis de ambiente.
+  <p class="mt-3 max-w-2xl text-sm leading-relaxed text-foam/60">
+    Salve a chave de cada provedor uma vez e troque o ativo com um clique — a troca vale no próximo capítulo, mesmo no meio de um livro. Qualquer endpoint compatível com OpenAI serve.
   </p>
 
   {{ if .Error }}
   <p class="mt-5 border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-sm text-amber-300">{{ .Error }}</p>
   {{ end }}
 
-  <.form action="/settings" method="post" class="mt-6 grid gap-5 border border-foam/10 bg-ink/60 p-5">
-    <.input name="translate_base_url" label="Base URL" value="{{ .BaseURL }}" />
-    <.input name="translate_model" label="Modelo" value="{{ .Model }}" />
-    <.password name="translate_api_key" label="Chave de API (deixe vazio para manter)" value="" />
-    <p class="font-mono text-[10px] uppercase tracking-[0.2em] text-foam/45">
-      Chave em uso: {{ .KeyOrigin }}
-      {{ if .EnvKeys }} · variáveis no ambiente: {{ range .EnvKeys }}{{ . }} {{ end }}{{ end }}
-    </p>
-    <.button type="submit">Salvar</.button>
-  </.form>
+  <p class="mt-5 border border-foam/10 bg-ink/60 px-4 py-3 font-mono text-[11px] leading-relaxed text-foam/60">
+    {{ if .ActiveName }}Ativo: <span class="text-copper">{{ .ActiveName }}</span>{{ else }}Sem perfil ativo — usando ambiente/padrão{{ end }}
+    · {{ .BaseURL }} · {{ .Model }} · chave {{ .KeyOrigin }}
+    {{ if .EnvKeys }}<br />Ambiente: {{ range .EnvKeys }}<code>{{ . }}</code> {{ end }}{{ end }}
+  </p>
 
-  <form action="/settings/test" method="post" class="mt-4">{{ csrfField .CSRFToken }}
-    <button type="submit" class="border border-copper/50 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-copper hover:bg-copper hover:text-ink transition-colors">Testar chave agora</button>
-  </form>
+  <div class="mt-6 space-y-4">
+    {{ range .Providers }}
+    <div class="border border-foam/10 bg-ink/60 p-4 {{ if .Active }}ring-1 ring-copper/60{{ end }}">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <p class="font-mono text-[11px] uppercase tracking-[0.24em] text-copper">{{ .Name }}</p>
+        <p class="font-mono text-[10px] uppercase tracking-[0.18em] {{ if .HasKey }}text-foam/60{{ else }}text-amber-300{{ end }}">
+          {{ if .HasKey }}chave {{ .KeyMask }}{{ else }}sem chave salva{{ end }}{{ if .Active }} · <span class="text-copper">ativo</span>{{ end }}
+        </p>
+      </div>
 
-  <div class="mt-8 space-y-1 font-mono text-[11px] leading-relaxed text-foam/45">
-    <p>OpenAI · <code>https://api.openai.com/v1</code> · <code>gpt-4.1-mini</code></p>
-    <p>Gemini · <code>https://generativelanguage.googleapis.com/v1beta/openai</code> · <code>gemini-3.5-flash-lite</code></p>
-    <p>OpenRouter · <code>https://openrouter.ai/api/v1</code> · <code>google/gemini-2.5-flash</code></p>
+      <form action="/settings/providers/{{ .Slug }}" method="post" class="mt-3 grid gap-3 sm:items-end {{ if .IsCustom }}sm:grid-cols-4{{ else }}sm:grid-cols-3{{ end }}">
+        {{ csrfField $.CSRFToken }}
+        {{ if .IsCustom }}<.input name="base_url" label="Base URL" value="{{ .BaseURL }}" />{{ end }}
+        <.input name="model" label="Modelo" value="{{ .Model }}" />
+        <div>
+          <label class="mb-1 block text-sm font-medium text-foam/70" for="key-{{ .Slug }}">Chave</label>
+          <input id="key-{{ .Slug }}" type="password" name="api_key" value="" autocomplete="off"
+                 class="w-full border border-copper/40 bg-ink px-3 py-2 text-foam focus:ring-2 focus:ring-copper outline-none"
+                 placeholder="{{ if .HasKey }}trocar chave{{ else }}colar a chave{{ end }}" />
+        </div>
+        <.button type="submit">Salvar</.button>
+      </form>
+
+      <form action="/settings/providers/{{ .Slug }}/activate" method="post" class="mt-2">{{ csrfField $.CSRFToken }}
+        <button type="submit" class="font-mono text-[10px] uppercase tracking-[0.18em] text-copper hover:text-foam transition-colors" title="Passa a usar este provedor no próximo capítulo">Usar este provedor →</button>
+      </form>
+
+      <p class="mt-2 break-all font-mono text-[10px] text-foam/35">{{ .BaseURL }}</p>
+    </div>
+    {{ end }}
   </div>
+
+  <form action="/settings/test" method="post" class="mt-6">{{ csrfField .CSRFToken }}
+    <button type="submit" class="border border-copper/50 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-copper hover:bg-copper hover:text-ink transition-colors">Testar a chave ativa agora</button>
+  </form>
 </section>
 {{ end }}

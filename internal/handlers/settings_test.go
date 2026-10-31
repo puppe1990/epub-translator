@@ -9,6 +9,7 @@ import (
 
 	"github.com/puppe1990/amarra-cais/pkg/cais"
 
+	"github.com/puppe1990/epub-translator/internal/models"
 	"github.com/puppe1990/epub-translator/internal/store"
 	"github.com/puppe1990/epub-translator/internal/translator"
 )
@@ -19,12 +20,15 @@ func newSettingsHandler(t *testing.T) (*SettingsHandler, store.Store) {
 	return NewSettingsHandler(setupTestViews(t), s, testSite(), nil, cais.Config{}), s
 }
 
-func TestSettingsShow_masksKeyAndShowsDefaults(t *testing.T) {
+func TestSettingsShow_listsProvidersAndMasksKeys(t *testing.T) {
 	t.Setenv("TRANSLATE_API_KEY", "")
+	t.Setenv("OPENAI_API_KEY", "")
 	handler, s := newSettingsHandler(t)
-	t.Cleanup(func() { _ = s.SetSetting(translator.KeyAPIKey, "") })
 
-	if err := s.SetSetting(translator.KeyAPIKey, "chave-secreta-1234"); err != nil {
+	if err := s.SaveProvider(models.Provider{Slug: "nvidia", APIKey: "nvapi-secreta-1234"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.SetSetting(translator.KeyActiveProvider, "nvidia"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -36,51 +40,121 @@ func TestSettingsShow_masksKeyAndShowsDefaults(t *testing.T) {
 		t.Fatalf("status = %d", rr.Code)
 	}
 	page := rr.Body.String()
-	for _, want := range []string{"Configurações", "https://api.openai.com/v1", "gpt-4.1-mini", "••••1234"} {
+	for _, want := range []string{
+		"NVIDIA NIM", "OpenAI", "Gemini", "Groq", "OpenRouter", "Personalizado",
+		"••••1234", "Ativo:", "Usar este provedor",
+		"minimaxai/minimax-m3.1-flash",
+	} {
 		if !strings.Contains(page, want) {
 			t.Errorf("página sem %q", want)
 		}
 	}
-	if strings.Contains(page, "chave-secreta-1234") {
+	if strings.Contains(page, "nvapi-secreta-1234") {
 		t.Error("a chave completa não pode aparecer na página")
 	}
 }
 
-func TestSettingsSave_storesEndpointAndOnlyOverwritesKeyWhenGiven(t *testing.T) {
+func TestSettingsSaveProvider_keepsPresetBaseAndStoresModel(t *testing.T) {
 	handler, s := newSettingsHandler(t)
-	if err := s.SetSetting(translator.KeyAPIKey, "chave-antiga"); err != nil {
-		t.Fatal(err)
-	}
 
 	form := url.Values{
-		"translate_base_url": {"https://generativelanguage.googleapis.com/v1beta/openai"},
-		"translate_model":    {"gemini-3.5-flash-lite"},
-		"translate_api_key":  {""},
+		"model":    {"modelo-custom-do-preset"},
+		"api_key":  {"nvapi-nova"},
+		"base_url": {"https://endpoint-malicioso/v1"},
 	}
-	req := httptest.NewRequest(http.MethodPost, "/settings", strings.NewReader(form.Encode()))
+	req := httptest.NewRequest(http.MethodPost, "/settings/providers/nvidia", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.SetPathValue("slug", "nvidia")
 	rr := httptest.NewRecorder()
-	handler.Save(rr, req)
+	handler.SaveProvider(rr, req)
 
 	if rr.Code != http.StatusSeeOther {
 		t.Fatalf("status = %d, body = %s", rr.Code, rr.Body.String())
 	}
-	if base, _ := s.GetSetting(translator.KeyBaseURL); !strings.Contains(base, "generativelanguage") {
-		t.Errorf("base url = %q", base)
+	provider, err := s.GetProvider("nvidia")
+	if err != nil {
+		t.Fatal(err)
 	}
-	if model, _ := s.GetSetting(translator.KeyModel); model != "gemini-3.5-flash-lite" {
-		t.Errorf("model = %q", model)
+	if provider.APIKey != "nvapi-nova" || provider.Model != "modelo-custom-do-preset" {
+		t.Errorf("provider = %+v", provider)
 	}
-	if key, _ := s.GetSetting(translator.KeyAPIKey); key != "chave-antiga" {
-		t.Errorf("chave vazia sobrescreveu a existente: %q", key)
+	if provider.BaseURL != "https://integrate.api.nvidia.com/v1" {
+		t.Errorf("base dos presets é fixa; gravou %q", provider.BaseURL)
 	}
 
-	form.Set("translate_api_key", "chave-nova")
-	req = httptest.NewRequest(http.MethodPost, "/settings", strings.NewReader(form.Encode()))
+	unknown := httptest.NewRequest(http.MethodPost, "/settings/providers/inexistente", nil)
+	unknown.SetPathValue("slug", "inexistente")
+	unknownRecorder := httptest.NewRecorder()
+	handler.SaveProvider(unknownRecorder, unknown)
+	if unknownRecorder.Code != http.StatusNotFound {
+		t.Errorf("slug desconhecido: status = %d, want 404", unknownRecorder.Code)
+	}
+}
+
+func TestSettingsSaveProvider_customUsesFormBase(t *testing.T) {
+	handler, s := newSettingsHandler(t)
+
+	form := url.Values{
+		"base_url": {"https://meu-proxy/v1"},
+		"model":    {"meu-modelo"},
+		"api_key":  {"k"},
+	}
+	req := httptest.NewRequest(http.MethodPost, "/settings/providers/custom", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	rr = httptest.NewRecorder()
-	handler.Save(rr, req)
-	if key, _ := s.GetSetting(translator.KeyAPIKey); key != "chave-nova" {
-		t.Errorf("chave nova não persistiu: %q", key)
+	req.SetPathValue("slug", "custom")
+	rr := httptest.NewRecorder()
+	handler.SaveProvider(rr, req)
+
+	provider, _ := s.GetProvider("custom")
+	if provider.BaseURL != "https://meu-proxy/v1" || provider.Model != "meu-modelo" {
+		t.Errorf("custom = %+v", provider)
+	}
+}
+
+func TestSettingsActivate_requiresKeyWithoutEnvFallback(t *testing.T) {
+	t.Setenv("TRANSLATE_API_KEY", "")
+	t.Setenv("OPENAI_API_KEY", "")
+	handler, s := newSettingsHandler(t)
+
+	req := httptest.NewRequest(http.MethodPost, "/settings/providers/groq/activate", nil)
+	req.SetPathValue("slug", "groq")
+	rr := httptest.NewRecorder()
+	handler.ActivateProvider(rr, req)
+
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d", rr.Code)
+	}
+	if active, _ := s.GetSetting(translator.KeyActiveProvider); active != "" {
+		t.Errorf("ativo sem chave deveria ser recusado, ficou %q", active)
+	}
+}
+
+func TestSettingsActivate_withSavedKeySetsActive(t *testing.T) {
+	handler, s := newSettingsHandler(t)
+	if err := s.SaveProvider(models.Provider{Slug: "nvidia", APIKey: "nvapi-x"}); err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/settings/providers/nvidia/activate", nil)
+	req.SetPathValue("slug", "nvidia")
+	rr := httptest.NewRecorder()
+	handler.ActivateProvider(rr, req)
+
+	if active, _ := s.GetSetting(translator.KeyActiveProvider); active != "nvidia" {
+		t.Errorf("ativo = %q, want nvidia", active)
+	}
+}
+
+func TestSettingsActivate_allowsEnvKeyFallback(t *testing.T) {
+	t.Setenv("TRANSLATE_API_KEY", "chave-ambiente")
+	handler, s := newSettingsHandler(t)
+
+	req := httptest.NewRequest(http.MethodPost, "/settings/providers/groq/activate", nil)
+	req.SetPathValue("slug", "groq")
+	rr := httptest.NewRecorder()
+	handler.ActivateProvider(rr, req)
+
+	if active, _ := s.GetSetting(translator.KeyActiveProvider); active != "groq" {
+		t.Errorf("ativo = %q, want groq (fallback do ambiente)", active)
 	}
 }

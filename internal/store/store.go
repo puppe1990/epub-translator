@@ -33,6 +33,9 @@ type Store interface {
 	GetSetting(key string) (string, error)
 	SetSetting(key, value string) error
 	Settings() (map[string]string, error)
+	SaveProvider(provider models.Provider) error
+	GetProvider(slug string) (models.Provider, error)
+	ListProviders() ([]models.Provider, error)
 	Sessions() session.Store
 	Ping() error
 	DB() *sql.DB

@@ -16,19 +16,25 @@ Envie um EPUB, acompanhe a tradução **capítulo a capítulo** e baixe o arquiv
 3. **Validação** → `internal/translate.ValidateBody` só aceita resposta com as mesmas tags (sequência normalizada), texto realmente traduzido, tamanho plausível e sem preâmbulo; falhou? o `Service` retenta com um lembrete (3 tentativas), depois marca o capítulo como `failed`.
 4. **Download** → `internal/epub.Rebuild` copia o zip original trocando apenas o miolo de `<body>` dos capítulos traduzidos e o `dc:language` do OPF; o resto (CSS, imagens, nav) passa intacto. O arquivo é montado a partir do banco na hora do download.
 
-## Configuração do provedor
+## Provedores (perfis com chave)
 
-A página **/settings** grava `translate_base_url`, `translate_model` e `translate_api_key` no SQLite (a chave fica mascarada na tela). Precedência: settings do app > ambiente > padrão.
+A página **/settings** mantém um **perfil por provedor**, cada um com a própria chave salva (tabela `providers`, chave mascarada na tela):
 
-| Variável             | Padrão                           |
-| -------------------- | -------------------------------- |
-| `TRANSLATE_BASE_URL` | `https://api.openai.com/v1`      |
-| `TRANSLATE_MODEL`    | `gpt-4.1-mini`                   |
-| `TRANSLATE_API_KEY`  | (também aceita `OPENAI_API_KEY`) |
+| Perfil       | Base URL (fixa no código)                                 | Modelo padrão                  |
+| ------------ | --------------------------------------------------------- | ------------------------------ |
+| `openai`     | `https://api.openai.com/v1`                               | `gpt-4.1-mini`                 |
+| `gemini`     | `https://generativelanguage.googleapis.com/v1beta/openai` | `gemini-3.5-flash-lite`        |
+| `groq`       | `https://api.groq.com/openai/v1`                          | `openai/gpt-oss-120b`          |
+| `nvidia`     | `https://integrate.api.nvidia.com/v1`                     | `minimaxai/minimax-m3.1-flash` |
+| `openrouter` | `https://openrouter.ai/api/v1`                            | `google/gemini-2.5-flash`      |
+| `custom`     | livre (formulário)                                        | livre                          |
 
-Exemplos: Gemini `https://generativelanguage.googleapis.com/v1beta/openai` + `gemini-3.5-flash-lite`; OpenRouter `https://openrouter.ai/api/v1` + `google/gemini-2.5-flash`.
+- **Trocar de provedor** = clicar em "Usar este provedor" — vale no próximo capítulo, mesmo no meio de um livro (útil quando um provedor bate cota/limite; veja `attempts` e o erro na página do livro).
+- **Testar a chave ativa** faz uma tradução mínima pelo endpoint real.
+- Resolução: perfil ativo com chave > configuração legada (`translate_*`)/ambiente > padrão. Env: `TRANSLATE_BASE_URL`, `TRANSLATE_MODEL`, `TRANSLATE_API_KEY` (ou `OPENAI_API_KEY`).
+- Só o perfil `custom` aceita base URL livre; os presets fixam a base para a chave não ser apontada a um endpoint arbitrário sem intenção.
 
-> A chave é guardada em texto puro no SQLite local — é um app de máquina pessoal. Em produção, prefira a variável de ambiente e restrinja o acesso ao servidor.
+> As chaves ficam em texto puro no SQLite — é um app pessoal. Em produção as envs do Cleat servem de fallback e o painel do Cleat mascara segredos.
 
 ## Desenvolvimento
 
