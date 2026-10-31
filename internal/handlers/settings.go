@@ -173,7 +173,9 @@ func (h *SettingsHandler) Test(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/settings", http.StatusSeeOther)
 		return
 	}
-	ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
+	// Botão de teste: modelos "thinking"/provedores lentos podem levar >60s por
+	// uma única chamada; o teto aqui é só para a requisição não pendurar.
+	ctx, cancel := context.WithTimeout(r.Context(), 150*time.Second)
 	defer cancel()
 
 	client := translate.Client{BaseURL: config.BaseURL, APIKey: config.APIKey, Model: config.Model}
