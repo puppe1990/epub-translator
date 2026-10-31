@@ -40,3 +40,11 @@ make ci               # test + golangci-lint + prettier --check
 ```
 
 Dados ficam em `data/` (SQLite `data/app.db`, EPUBs enviados em `data/books/`), fora do git.
+
+## Deploy (Cleat)
+
+- Host: **https://epub-translator.apps.gestaobem.com** — app `epub-translator` (id 227), runtime `golang`, porta 4217, server `gestaobem-cx43`.
+- Repo `puppe1990/epub-translator`, branch `main`, `auto_deploy` ligado: push em `main` publica.
+- Deploy manual: `cleat__deploy app=epub-translator ref=main` (acompanhe com `cleat__deploy_status`).
+- Envs de produção: `ENV=production`, `APP_URL`, `PORT=:4217`, `DB_PATH=/opt/epub-translator/data/app.db`, `STATIC_DIR=/opt/epub-translator/current/web/static`, `TRUSTED_PROXIES=127.0.0.1`, `ADMIN_TOKEN`, `LOCALE=pt` e `TRANSLATE_BASE_URL`/`TRANSLATE_MODEL`/`TRANSLATE_API_KEY` (provedor inicial; a página /settings sobrescreve por requisição).
+- Build no servidor: `npm install` + Tailwind + `go build ./cmd/server` (contrato em `.cleat_deploy/deploy.json`, `binaries: ["server"]`).
