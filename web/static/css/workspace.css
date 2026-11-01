@@ -155,7 +155,8 @@ progress::-moz-progress-bar {
   color: #c36e58;
   background: #c36e5815;
 }
-.status-pending {
+.status-pending,
+.status-paused {
   color: var(--muted);
   background: rgb(var(--amarra-tide) / 0.45);
 }

@@ -7,7 +7,7 @@
   </header>
   <div class="book-toolbar">
     <p>Do original para <strong>{{ .Book.TargetLanguage }}</strong><span> · capítulo a capítulo</span></p>
-    <div class="book-actions"><form action="/books/{{ .Book.ID }}/retry" method="post">{{ csrfField .CSRFToken }}<button type="submit" class="button button-secondary">Retomar / retentar</button></form><a href="/books/{{ .Book.ID }}/download" class="button button-primary"><span>↓</span> Baixar EPUB</a></div>
+    <div id="book-actions" class="book-actions">{{ .ActionsHTML }}</div>
   </div>
   <div id="book-progress" class="translation-progress">{{ .ProgressHTML }}</div>
   <p class="download-note">Você já pode baixar o livro. Os capítulos ainda não traduzidos permanecem no idioma original.</p>

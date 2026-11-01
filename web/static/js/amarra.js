@@ -2346,6 +2346,8 @@
     for (const kind of STREAM_KINDS) {
       src.addEventListener(kind, (ev) => {
         for (const op of parseSSE(sseEnvelope(kind, ev.data))) {
+          // EventSource exposes the server's target id separately from data.
+          if (ev.lastEventId) op.target = ev.lastEventId;
           applyOp(op, doc, opts);
         }
       });

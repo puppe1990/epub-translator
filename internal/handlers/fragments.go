@@ -47,6 +47,8 @@ func bookStatusLabel(status string) string {
 		return "Concluído"
 	case "failed":
 		return "Com falhas"
+	case "paused":
+		return "Pausado"
 	default:
 		return "Na fila"
 	}
@@ -73,6 +75,8 @@ func statusChipClass(status string) string {
 		return "status-running"
 	case "failed":
 		return "status-failed"
+	case "paused":
+		return "status-paused"
 	default:
 		return "status-pending"
 	}
@@ -82,10 +86,19 @@ func statusChipClass(status string) string {
 // #chapter-list); a página do livro renderiza os mesmos blocos via
 // RenderBookFragments para o primeiro paint.
 var fragmentsTemplate = template.Must(template.New("fragments").Parse(`
+{{ define "book-actions" }}
+{{ if eq .Book.Status "translating" }}
+<form action="/books/{{ .Book.ID }}/pause" method="post"><input type="hidden" name="csrf_token" value="{{ .CSRFToken }}" /><button type="submit" class="button button-secondary" title="Interrompe a chamada atual e preserva os capítulos concluídos"><span aria-hidden="true">Ⅱ</span> Pausar</button></form>
+{{ else if .Book.HasPending }}
+<form action="/books/{{ .Book.ID }}/retry" method="post"><input type="hidden" name="csrf_token" value="{{ .CSRFToken }}" /><button type="submit" class="button button-secondary">{{ if eq .Book.Status "paused" }}Retomar tradução{{ else }}Retomar / retentar{{ end }}</button></form>
+{{ end }}
+<a href="/books/{{ .Book.ID }}/download" class="button button-primary"><span aria-hidden="true">↓</span> Baixar EPUB</a>
+{{ end }}
+
 {{ define "book-progress" }}
 <div class="progress-heading"><div><p class="eyebrow">PROGRESSO DA TRADUÇÃO</p><h2>{{ .DoneChapters }} <span>de {{ .TotalChapters }} capítulos</span></h2></div><span class="progress-percent">{{ .Percent }}<small>%</small></span></div>
 <progress value="{{ .Percent }}" max="100" aria-label="Progresso da tradução">{{ .Percent }}%</progress>
-<div class="progress-footer"><span class="status-chip {{ .ChipClass }}">{{ .StatusLabel }}</span>{{ if .FailedChapters }}<span class="failure-count">{{ .FailedChapters }} falha(s) · retente os capítulos abaixo</span>{{ else }}<span class="muted">{{ if eq .Status "done" }}Tudo pronto para sua próxima leitura.{{ else }}A tradução continua mesmo com esta aba fechada.{{ end }}</span>{{ end }}</div>
+<div class="progress-footer"><span class="status-chip {{ .ChipClass }}">{{ .StatusLabel }}</span>{{ if eq .Status "paused" }}<span class="muted">Tradução pausada. Retome quando quiser.</span>{{ else if .FailedChapters }}<span class="failure-count">{{ .FailedChapters }} falha(s) · retente os capítulos abaixo</span>{{ else }}<span class="muted">{{ if eq .Status "done" }}Tudo pronto para sua próxima leitura.{{ else }}A tradução continua mesmo com esta aba fechada.{{ end }}</span>{{ end }}</div>
 {{ end }}
 
 {{ define "chapter-list" }}
@@ -156,4 +169,8 @@ func renderFragment(name string, data any) (string, error) {
 		return "", fmt.Errorf("renderizar fragmento %s: %w", name, err)
 	}
 	return builder.String(), nil
+}
+
+func RenderBookActions(book models.Book, csrfToken string) (string, error) {
+	return renderFragment("book-actions", map[string]any{"Book": newBookView(book), "CSRFToken": csrfToken})
 }

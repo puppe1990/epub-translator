@@ -188,6 +188,11 @@ func (h *BooksHandler) Show(w http.ResponseWriter, r *http.Request, id int64) {
 		httpx.ServerError(w, err, h.cfg)
 		return
 	}
+	actions, err := RenderBookActions(book, meta.ForRequest(h.site, r).CSRFToken)
+	if err != nil {
+		httpx.ServerError(w, err, h.cfg)
+		return
+	}
 
 	writeView(w, r, h.views, h.cfg, "app", "book", amarraData(r, h.site, map[string]any{
 		"Title":           book.Title,
@@ -195,6 +200,7 @@ func (h *BooksHandler) Show(w http.ResponseWriter, r *http.Request, id int64) {
 		"Book":            newBookView(book),
 		"ProgressHTML":    template.HTML(progress),
 		"ChapterListHTML": template.HTML(list),
+		"ActionsHTML":     template.HTML(actions),
 	}), http.StatusOK)
 }
 
@@ -278,7 +284,7 @@ func downloadFilename(book models.Book) string {
 // página não precisa recarregar nem fazer polling próprio.
 func (h *BooksHandler) Events(w http.ResponseWriter, r *http.Request, id int64) {
 	stream.RelaySSE(w)
-	var lastProgress, lastList string
+	var lastProgress, lastList, lastActions string
 	ticker := time.NewTicker(1500 * time.Millisecond)
 	defer ticker.Stop()
 
@@ -306,6 +312,11 @@ func (h *BooksHandler) Events(w http.ResponseWriter, r *http.Request, id int64) 
 			if list != lastList {
 				_ = stream.WriteOp(w, stream.Op{Kind: "morph", Target: "chapter-list", HTML: list})
 				lastList = list
+			}
+			actions, err := RenderBookActions(book, meta.ForRequest(h.site, r).CSRFToken)
+			if err == nil && actions != lastActions {
+				_ = stream.WriteOp(w, stream.Op{Kind: "morph", Target: "book-actions", HTML: actions})
+				lastActions = actions
 			}
 			_ = stream.Flush(w)
 		}

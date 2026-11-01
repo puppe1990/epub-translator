@@ -1,7 +1,7 @@
 package models
 
 // Book é um EPUB enviado para tradução. Status: pending → translating →
-// done (tudo traduzido) ou failed (algum capítulo falhou e pede retry).
+// paused (retomada manual), done (tudo traduzido) ou failed (pede retry).
 type Book struct {
 	ID             int64
 	Title          string

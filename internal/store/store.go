@@ -30,6 +30,7 @@ type Store interface {
 	ResetChapter(id int64) error
 	ResetRunningChapters() error
 	SetBookStatus(id int64, status string) error
+	PauseBook(id int64) error
 	GetSetting(key string) (string, error)
 	SetSetting(key, value string) error
 	Settings() (map[string]string, error)

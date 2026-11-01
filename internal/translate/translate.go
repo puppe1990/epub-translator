@@ -109,6 +109,9 @@ func (s Service) TranslateBody(ctx context.Context, targetLanguage, body string)
 
 	var lastErr error
 	for attempt := 0; attempt < attempts; attempt++ {
+		if err := ctx.Err(); err != nil {
+			return "", err
+		}
 		content := base
 		if attempt > 0 {
 			content += "\n\nATENÇÃO: a resposta anterior veio com texto fora do HTML, tags alteradas " +

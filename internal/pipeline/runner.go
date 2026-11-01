@@ -7,6 +7,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/puppe1990/epub-translator/internal/models"
 	"github.com/puppe1990/epub-translator/internal/store"
 )
 
@@ -22,11 +23,17 @@ type Runner struct {
 	translator Translator
 
 	mu      sync.Mutex
-	running map[int64]chan struct{}
+	running map[int64]*bookRun
+}
+
+type bookRun struct {
+	done     chan struct{}
+	cancel   context.CancelFunc
+	pauseErr error
 }
 
 func NewRunner(s store.Store, translator Translator) *Runner {
-	return &Runner{store: s, translator: translator, running: map[int64]chan struct{}{}}
+	return &Runner{store: s, translator: translator, running: map[int64]*bookRun{}}
 }
 
 // Start dispara a tradução dos capítulos pendentes/falhos. Devolve false se o
@@ -37,28 +44,44 @@ func (r *Runner) Start(bookID int64) bool {
 	if r.running[bookID] != nil {
 		return false
 	}
-	done := make(chan struct{})
-	r.running[bookID] = done
-	go r.run(bookID, done)
+	ctx, cancel := context.WithCancel(context.Background())
+	job := &bookRun{done: make(chan struct{}), cancel: cancel}
+	r.running[bookID] = job
+	go r.run(ctx, bookID, job)
 	return true
 }
 
 // Wait bloqueia até o livro terminar (testes e shutdown gracioso).
 func (r *Runner) Wait(bookID int64) {
 	r.mu.Lock()
-	done := r.running[bookID]
+	job := r.running[bookID]
 	r.mu.Unlock()
-	if done != nil {
-		<-done
+	if job != nil {
+		<-job.done
 	}
 }
 
-func (r *Runner) run(bookID int64, done chan struct{}) {
+// Pause waits for cancellation to be persisted before a subsequent Start can
+// resume the book. No new run may overlap the chapter being cancelled.
+func (r *Runner) Pause(bookID int64) (bool, error) {
+	r.mu.Lock()
+	job := r.running[bookID]
+	r.mu.Unlock()
+	if job == nil {
+		return false, nil
+	}
+	job.cancel()
+	<-job.done
+	return true, job.pauseErr
+}
+
+func (r *Runner) run(ctx context.Context, bookID int64, job *bookRun) {
 	defer func() {
+		job.cancel()
 		r.mu.Lock()
 		delete(r.running, bookID)
+		close(job.done)
 		r.mu.Unlock()
-		close(done)
 	}()
 
 	book, err := r.store.FindBook(bookID)
@@ -76,17 +99,36 @@ func (r *Runner) run(bookID int64, done chan struct{}) {
 	_ = r.store.SetBookStatus(bookID, "translating")
 
 	for _, chapter := range chapters {
-		_ = r.store.SetChapterRunning(chapter.ID)
-		out, err := r.translator.TranslateBody(context.Background(), book.TargetLanguage, chapter.SourceText)
-		if err != nil {
-			_ = r.store.SetChapterFailed(chapter.ID, err.Error())
-			continue
+		if r.pauseIfCancelled(ctx, bookID, job) {
+			return
 		}
-		_ = r.store.SetChapterDone(chapter.ID, out)
+		r.translateChapter(ctx, book.TargetLanguage, chapter)
+		if r.pauseIfCancelled(ctx, bookID, job) {
+			return
+		}
 	}
 	r.finish(bookID)
 }
 
+func (r *Runner) pauseIfCancelled(ctx context.Context, bookID int64, job *bookRun) bool {
+	if ctx.Err() == nil {
+		return false
+	}
+	job.pauseErr = r.store.PauseBook(bookID)
+	return true
+}
+
+func (r *Runner) translateChapter(ctx context.Context, language string, chapter models.Chapter) {
+	_ = r.store.SetChapterRunning(chapter.ID)
+	out, err := r.translator.TranslateBody(ctx, language, chapter.SourceText)
+	if err != nil {
+		if ctx.Err() == nil {
+			_ = r.store.SetChapterFailed(chapter.ID, err.Error())
+		}
+		return
+	}
+	_ = r.store.SetChapterDone(chapter.ID, out)
+}
 func (r *Runner) finish(bookID int64) {
 	book, err := r.store.FindBook(bookID)
 	if err != nil {

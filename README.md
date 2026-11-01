@@ -5,6 +5,7 @@ Envie um EPUB, acompanhe a tradução **capítulo a capítulo** e baixe o arquiv
 - `GET /` — envio (multipart) + lista de livros com progresso
 - `GET /books/{id}` — progresso ao vivo (**SSE** morfa `#book-progress` e `#chapter-list`), tabela de capítulos com status/tentativas/erro
 - `POST /books/{id}/retry` — roda a fila (pendentes + falhos)
+- `POST /books/{id}/pause` — cancela a chamada atual e pausa o livro, preservando os capítulos concluídos
 - `POST /books/{id}/chapters/{cid}/retry` — devolve um capítulo falho à fila e roda
 - `GET /books/{id}/download` — reconstrói o EPUB com os capítulos já traduzidos (o que faltar sai no idioma original)
 - `GET|POST /settings` — endpoint OpenAI-compatível (base URL, modelo e chave); `POST /settings/test` valida na hora
@@ -15,6 +16,8 @@ Envie um EPUB, acompanhe a tradução **capítulo a capítulo** e baixe o arquiv
 2. **Tradução** → `internal/pipeline.Runner` processa a fila (pendentes + falhos, em ordem) em um goroutine por livro; cada capítulo é gravado como `running → done|failed` (com `attempts` e a mensagem de erro). Restart do servidor devolve `running` para a fila; o retry manual retoma.
 3. **Validação** → `internal/translate.ValidateBody` só aceita resposta com as mesmas tags (sequência normalizada), texto realmente traduzido, tamanho plausível e sem preâmbulo; falhou? o `Service` retenta com um lembrete (3 tentativas), depois marca o capítulo como `failed`.
 4. **Download** → `internal/epub.Rebuild` copia o zip original trocando apenas o miolo de `<body>` dos capítulos traduzidos e o `dc:language` do OPF; o resto (CSS, imagens, nav) passa intacto. O arquivo é montado a partir do banco na hora do download.
+
+Na página do livro, **Pausar** interrompe a requisição atual e salva o estado **Pausado**. O capítulo interrompido volta à fila sem contar como falha. **Retomar tradução** continua pelos pendentes e falhos; os concluídos permanecem intactos. A pausa sobrevive ao reinício do servidor, e os controles acompanham o estado ao vivo por SSE.
 
 ## Provedores (perfis com chave)
 
