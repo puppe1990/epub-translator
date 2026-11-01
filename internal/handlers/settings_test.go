@@ -71,7 +71,7 @@ func TestSettingsShow_nvidiaModelSelectPreservesSavedModel(t *testing.T) {
 				t.Fatal("formulário NVIDIA ausente")
 			}
 			form := strings.SplitN(page[start:], "</form>", 2)[0]
-			for _, want := range []string{"<select", `name="model"`, `id="model-nvidia"`, `for="model-nvidia"`, `value="` + model + `" selected`, "google/gemma-4-31b-it", "nvidia/nemotron-3.5-lightning-30b-a3b"} {
+			for _, want := range []string{"<select", `name="model"`, `id="model-nvidia"`, `for="model-nvidia"`, `value="` + model + `" selected`, "google/gemma-4-31b-it", "deepseek-ai/deepseek-v4.1-flash", "z-ai/glm-5.3-flash"} {
 				if !strings.Contains(form, want) {
 					t.Errorf("seletor NVIDIA sem %q", want)
 				}

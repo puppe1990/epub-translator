@@ -5,11 +5,46 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 
 	"github.com/puppe1990/epub-translator/internal/models"
 )
+
+func TestProviderModelOptions_nvidiaListsTranslationCandidates(t *testing.T) {
+	want := []string{
+		"mistralai/mistral-large-4-1t-a52b",
+		"deepseek-ai/deepseek-v4.1-flash",
+		"google/gemma-4-31b-it",
+		"openai/gpt-oss-20b",
+		"nvidia/nemotron-3.5-lightning-30b-a3b",
+		"z-ai/glm-5.3-flash",
+	}
+	got := providerModelOptions("nvidia", want[0])
+	if !slices.Equal(got, want) {
+		t.Fatalf("catálogo NVIDIA = %v, want %v", got, want)
+	}
+	for _, excluded := range []string{
+		"minimaxai/minimax-m3.1-flash",
+		"nvidia/nemotron-3.5-super-vl-120b-a12b",
+		"nvidia/nemotron-3-super-120b-a12b",
+		"nvidia/nemotron-3.5-parse",
+		"nvidia/riva-translate-4b-instruct-v2",
+	} {
+		if slices.Contains(got, excluded) {
+			t.Errorf("lista de tradução não deve oferecer %s", excluded)
+		}
+	}
+}
+
+func TestProviderModelOptions_nvidiaKeepsSavedModelOutsideCatalog(t *testing.T) {
+	saved := "minimaxai/minimax-m3.1-flash"
+	got := providerModelOptions("nvidia", saved)
+	if got[0] != saved || !slices.Contains(got, "google/gemma-4-31b-it") {
+		t.Fatalf("modelo salvo precisa continuar selecionável sem substituir a lista: %v", got)
+	}
+}
 
 type modelCatalogFixture struct{ fail bool }
 

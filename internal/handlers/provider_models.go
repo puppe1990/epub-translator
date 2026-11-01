@@ -45,12 +45,12 @@ func providerModelOptions(slug, selected string) []string {
 		options = []string{"google/gemini-2.5-flash", "google/gemini-2.5-flash-lite", "anthropic/claude-haiku-4.5", "openai/gpt-oss-120b", "openai/gpt-5.4-mini", "deepseek/deepseek-v3.2", "google/gemma-4-31b-it:free"}
 	case "nvidia":
 		options = []string{
-			"minimaxai/minimax-m3.1-flash",
-			"google/gemma-4-31b-it",
-			"nvidia/nemotron-3.5-lightning-30b-a3b",
-			"nvidia/nemotron-3.5-super-vl-120b-a12b",
-			"nvidia/nemotron-3-super-120b-a12b",
 			"mistralai/mistral-large-4-1t-a52b",
+			"deepseek-ai/deepseek-v4.1-flash",
+			"google/gemma-4-31b-it",
+			"openai/gpt-oss-20b",
+			"nvidia/nemotron-3.5-lightning-30b-a3b",
+			"z-ai/glm-5.3-flash",
 		}
 	default:
 		return nil
