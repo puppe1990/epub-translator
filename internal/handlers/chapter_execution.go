@@ -9,6 +9,24 @@ import (
 	"github.com/puppe1990/epub-translator/internal/translator"
 )
 
+func formatChapterChars(n int) string {
+	s := fmt.Sprintf("%d", n)
+	if len(s) <= 3 {
+		return s
+	}
+	var b strings.Builder
+	lead := len(s) % 3
+	if lead == 0 {
+		lead = 3
+	}
+	b.WriteString(s[:lead])
+	for i := lead; i < len(s); i += 3 {
+		b.WriteByte('.')
+		b.WriteString(s[i : i+3])
+	}
+	return b.String()
+}
+
 func chapterProviderLabel(slug string) string {
 	if preset, ok := translator.PresetBySlug(slug); ok {
 		return preset.Name

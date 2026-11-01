@@ -145,7 +145,7 @@
 }
 .chapter-table {
   width: 100%;
-  min-width: 850px;
+  min-width: 940px;
   table-layout: fixed;
   border-collapse: collapse;
   text-align: left;
@@ -177,6 +177,14 @@
   text-align: center;
   color: var(--muted);
   width: 70px;
+}
+.chapter-chars {
+  width: 96px;
+  text-align: right;
+  color: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 .chapter-status {
   width: 130px;

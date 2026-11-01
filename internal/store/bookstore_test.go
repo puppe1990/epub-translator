@@ -3,6 +3,7 @@ package store
 import (
 	"errors"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/puppe1990/epub-translator/internal/models"
 )
@@ -41,6 +42,9 @@ func TestStore_CreateBookAndChaptersThenList(t *testing.T) {
 	if chapters[0].SourceText != "" {
 		t.Error("a lista não deve carregar os corpos (source_text)")
 	}
+	if chapters[0].SourceChars != utf8.RuneCountInString("<p>One</p>") {
+		t.Errorf("SourceChars = %d, want length of original body", chapters[0].SourceChars)
+	}
 
 	book, err := s.FindBook(bookID)
 	if err != nil {
@@ -52,6 +56,35 @@ func TestStore_CreateBookAndChaptersThenList(t *testing.T) {
 
 	if _, err := s.FindBook(9999); !errors.Is(err, ErrBookNotFound) {
 		t.Errorf("err = %v, want ErrBookNotFound", err)
+	}
+}
+
+func TestStore_ListChaptersCountsUnicodeCharsWithoutLoadingBodies(t *testing.T) {
+	s := newTestStore(t)
+	bookID, err := s.CreateBook(models.Book{
+		Title: "Livro Unicode", Author: "Autora", SourceLanguage: "pt",
+		TargetLanguage: "pt-BR", Filename: "unicode.epub", SourcePath: "data/books/u.epub",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := "<p>ação</p>"
+	if err := s.CreateChapters(bookID, []models.Chapter{
+		{Position: 1, DocPath: "OEBPS/ch01.xhtml", Title: "Um", SourceText: body},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	chapters, err := s.ListChapters(bookID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if chapters[0].SourceText != "" {
+		t.Error("a lista não deve carregar os corpos (source_text)")
+	}
+	want := utf8.RuneCountInString(body)
+	if chapters[0].SourceChars != want {
+		t.Errorf("SourceChars = %d, want %d (runes, not bytes)", chapters[0].SourceChars, want)
 	}
 }
 

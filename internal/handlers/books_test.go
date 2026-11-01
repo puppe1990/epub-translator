@@ -203,6 +203,7 @@ func TestBooksShow_rendersProgressChaptersAndStream(t *testing.T) {
 	for _, want := range []string{
 		"Livro Teste",
 		"Capítulo",
+		"Caracteres",
 		`id="book-progress"`,
 		`id="chapter-list"`,
 		`data-amarra-stream="/books/1/events"`,

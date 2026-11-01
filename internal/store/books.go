@@ -99,7 +99,8 @@ func scanBook(row rowScanner) (models.Book, error) {
 func (s *SQLiteStore) ListChapters(bookID int64) ([]models.Chapter, error) {
 	rows, err := s.db.Query(
 		`SELECT id, book_id, position, doc_path, title, status, attempts, error,
-                 provider, model, started_at, finished_at, duration_ms
+                 provider, model, started_at, finished_at, duration_ms,
+                 length(source_text) AS source_chars
 		 FROM chapters WHERE book_id = ? ORDER BY position`, bookID)
 	if err != nil {
 		return nil, fmt.Errorf("listar capítulos: %w", err)
@@ -111,7 +112,8 @@ func (s *SQLiteStore) ListChapters(bookID int64) ([]models.Chapter, error) {
 		var chapter models.Chapter
 		if err := rows.Scan(&chapter.ID, &chapter.BookID, &chapter.Position, &chapter.DocPath,
 			&chapter.Title, &chapter.Status, &chapter.Attempts, &chapter.Error,
-			&chapter.Provider, &chapter.Model, &chapter.StartedAt, &chapter.FinishedAt, &chapter.DurationMS); err != nil {
+			&chapter.Provider, &chapter.Model, &chapter.StartedAt, &chapter.FinishedAt, &chapter.DurationMS,
+			&chapter.SourceChars); err != nil {
 			return nil, fmt.Errorf("ler capítulo: %w", err)
 		}
 		chapters = append(chapters, chapter)

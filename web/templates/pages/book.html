@@ -12,7 +12,7 @@
   <div id="book-progress" class="translation-progress">{{ .ProgressHTML }}</div>
   <p class="download-note">Você já pode baixar o livro. Os capítulos ainda não traduzidos permanecem no idioma original.</p>
   <section class="chapters-section" aria-labelledby="chapters-heading"><header class="section-heading"><h2 id="chapters-heading">Capítulos <span>{{ .Book.TotalChapters }}</span></h2><span class="live-label"><span class="status-dot"></span> Progresso ao vivo</span></header><div id="chapter-list" class="chapter-list">{{ .ChapterListHTML }}</div></section>
-  <p class="download-note">Tempo, provedor e modelo são da última execução de cada capítulo. “—” indica informação não registrada nas traduções antigas.</p>
+  <p class="download-note">Caracteres é o tamanho do XHTML original. Tempo, provedor e modelo são da última execução de cada capítulo. “—” indica informação não registrada nas traduções antigas.</p>
   <div data-amarra-stream="/books/{{ .Book.ID }}/events" hidden></div>
 </section>
 {{ end }}

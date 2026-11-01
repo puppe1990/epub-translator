@@ -25,6 +25,7 @@ type Chapter struct {
 	DocPath        string // caminho dentro do zip
 	Title          string
 	SourceText     string // miolo de <body> original
+	SourceChars    int    // caracteres do original; ListChapters preenche sem o corpo
 	TranslatedText string // miolo de <body> traduzido
 	Status         string // pending | running | done | failed
 	Attempts       int
