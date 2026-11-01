@@ -43,6 +43,13 @@
 .field {
   min-width: 0;
 }
+.model-catalog-note {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.6;
+  margin-top: -7px;
+  overflow-wrap: anywhere;
+}
 .field label {
   display: block;
   margin-bottom: 7px;

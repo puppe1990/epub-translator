@@ -22,29 +22,31 @@ import (
 )
 
 type SettingsHandler struct {
-	views   *view.Renderer
-	store   store.Store
-	site    meta.Site
-	catalog *i18n.Catalog
-	cfg     cais.Config
+	views        *view.Renderer
+	store        store.Store
+	site         meta.Site
+	catalog      *i18n.Catalog
+	cfg          cais.Config
+	modelCatalog providerModelLister
 }
 
 func NewSettingsHandler(views *view.Renderer, s store.Store, site meta.Site,
 	catalog *i18n.Catalog, cfg cais.Config) *SettingsHandler {
-	return &SettingsHandler{views: views, store: s, site: site, catalog: catalog, cfg: cfg}
+	return &SettingsHandler{views: views, store: s, site: site, catalog: catalog, cfg: cfg, modelCatalog: translator.NewModelCatalog(nil)}
 }
 
 // providerRow é a linha de um preset de provedor na página.
 type providerRow struct {
-	Slug         string
-	Name         string
-	BaseURL      string
-	Model        string
-	ModelOptions []string
-	KeyMask      string
-	HasKey       bool
-	Active       bool
-	IsCustom     bool
+	Slug                string
+	Name                string
+	BaseURL             string
+	Model               string
+	ModelOptions        []string
+	KeyMask             string
+	HasKey              bool
+	Active              bool
+	IsCustom            bool
+	ModelCatalogWarning string
 }
 
 func (h *SettingsHandler) Show(w http.ResponseWriter, r *http.Request) {
@@ -87,6 +89,7 @@ func (h *SettingsHandler) Show(w http.ResponseWriter, r *http.Request) {
 		rows = append(rows, row)
 	}
 
+	h.loadProviderModels(r.Context(), rows, bySlug)
 	effective, resolveErr := translator.Resolve(h.store)
 	errMsg := ""
 	if resolveErr != nil {

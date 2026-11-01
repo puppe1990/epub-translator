@@ -17,7 +17,9 @@ import (
 func newSettingsHandler(t *testing.T) (*SettingsHandler, store.Store) {
 	t.Helper()
 	s := setupTestStore(t)
-	return NewSettingsHandler(setupTestViews(t), s, testSite(), nil, cais.Config{}), s
+	handler := NewSettingsHandler(setupTestViews(t), s, testSite(), nil, cais.Config{})
+	handler.modelCatalog = nil
+	return handler, s
 }
 
 func TestSettingsShow_listsProvidersAndMasksKeys(t *testing.T) {

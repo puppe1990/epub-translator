@@ -31,9 +31,10 @@
       <form action="/settings/providers/{{ .Slug }}" method="post" class="provider-form">
         {{ csrfField $.CSRFToken }}
         {{ if .IsCustom }}<div class="field"><label for="base-{{ .Slug }}">Base URL</label><input id="base-{{ .Slug }}" name="base_url" type="url" value="{{ .BaseURL }}" placeholder="https://seu-provedor.com/v1" /></div>{{ end }}
-        <div class="field"><label for="model-{{ .Slug }}">{{ if .ModelOptions }}Modelo NVIDIA NIM{{ else }}Modelo{{ end }}</label>
+        <div class="field"><label for="model-{{ .Slug }}">{{ if .ModelOptions }}Modelo {{ .Name }}{{ else }}Modelo{{ end }}</label>
           {{ if .ModelOptions }}{{ $selectedModel := .Model }}<select id="model-{{ .Slug }}" name="model">{{ range .ModelOptions }}<option value="{{ . }}" {{ if eq . $selectedModel }}selected{{ end }}>{{ . }}</option>{{ end }}</select>{{ else }}<input id="model-{{ .Slug }}" name="model" value="{{ .Model }}" placeholder="Identificador do modelo" />{{ end }}
         </div>
+        {{ if .ModelOptions }}<p class="model-catalog-note">{{ len .ModelOptions }} modelos · use a busca para filtrar. {{ if .ModelCatalogWarning }}{{ .ModelCatalogWarning }}{{ end }}</p>{{ end }}
         <div class="field"><label for="key-{{ .Slug }}">Chave da API</label><input id="key-{{ .Slug }}" type="password" name="api_key" value="" autocomplete="new-password" placeholder="{{ if .HasKey }}Deixe vazio para manter a chave{{ else }}Cole sua chave aqui{{ end }}" /></div>
         <button type="submit" class="button button-secondary provider-save">Salvar</button>
       </form>
