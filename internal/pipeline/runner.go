@@ -37,6 +37,26 @@ func NewRunner(s store.Store, translator Translator) *Runner {
 	return &Runner{store: s, translator: translator, now: time.Now, running: map[int64]*bookRun{}}
 }
 
+// ResumeInterrupted devolve capítulos travados em 'running' à fila e retoma
+// só os livros que estavam traduzindo. Pausados e "na fila" ficam como estão
+// — o boot de um deploy não pode virar pausa nem arrancar o que o usuário
+// não pediu.
+func (r *Runner) ResumeInterrupted() error {
+	if err := r.store.ResetRunningChapters(); err != nil {
+		return err
+	}
+	books, err := r.store.ListBooks()
+	if err != nil {
+		return err
+	}
+	for _, book := range books {
+		if book.Status == "translating" {
+			r.Start(book.ID)
+		}
+	}
+	return nil
+}
+
 // Start dispara a tradução dos capítulos pendentes/falhos. Devolve false se o
 // livro já está rodando (o botão de retry pode ser clicado duas vezes).
 func (r *Runner) Start(bookID int64) bool {

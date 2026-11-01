@@ -89,12 +89,6 @@ func bootstrapWithConfig(ctx context.Context, cfg cais.Config) (*app.App, error)
 	if err != nil {
 		return nil, fmt.Errorf("store: %w", err)
 	}
-	// Restart no meio de uma tradução deixa capítulos em 'running'; devolvê-los
-	// à fila mantém o retry manual como caminho único de retomada.
-	if err := s.ResetRunningChapters(); err != nil {
-		_ = s.Close()
-		return nil, fmt.Errorf("reset chapters: %w", err)
-	}
 
 	staticDir, err := cais.ResolveWebDir("static", cfg.StaticDir)
 	if err != nil {
@@ -103,6 +97,12 @@ func bootstrapWithConfig(ctx context.Context, cfg cais.Config) (*app.App, error)
 	}
 
 	runner := pipeline.NewRunner(s, translator.Configured{Store: s})
+	// Deploy/SIGTERM mata o processo no meio do capítulo: devolve 'running'
+	// à fila e retoma os livros que estavam traduzindo. Pausados ficam pausados.
+	if err := runner.ResumeInterrupted(); err != nil {
+		_ = s.Close()
+		return nil, fmt.Errorf("resume chapters: %w", err)
+	}
 	booksDir := filepath.Join(filepath.Dir(cfg.DBPath), "books")
 
 	return app.New(cfg, app.Deps{

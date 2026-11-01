@@ -13,7 +13,7 @@ Envie um EPUB, acompanhe a tradução **capítulo a capítulo** e baixe o arquiv
 ## Como funciona
 
 1. **Upload** → `internal/epub.Parse` lê o zip: metadados (título/autor/idioma), documentos XHTML do spine (+ nav) e o miolo de `<body>` de cada um. Cada documento vira um **capítulo** em `chapters` (unidade de chamada e de retry).
-2. **Tradução** → `internal/pipeline.Runner` processa a fila (pendentes + falhos, em ordem) em um goroutine por livro; cada capítulo é gravado como `running → done|failed` (com `attempts` e a mensagem de erro). Restart do servidor devolve `running` para a fila; o retry manual retoma.
+2. **Tradução** → `internal/pipeline.Runner` processa a fila (pendentes + falhos, em ordem) em um goroutine por livro; cada capítulo é gravado como `running → done|failed` (com `attempts` e a mensagem de erro). Restart/deploy devolve `running` para a fila e retoma os livros que estavam traduzindo; pausados e “na fila” ficam como estão.
 3. **Validação** → `internal/translate.ValidateBody` só aceita resposta com as mesmas tags (sequência normalizada), texto realmente traduzido, tamanho plausível e sem preâmbulo; falhou? o `Service` retenta com um lembrete (3 tentativas), depois marca o capítulo como `failed`.
 4. **Download** → `internal/epub.Rebuild` copia o zip original trocando apenas o miolo de `<body>` dos capítulos traduzidos e o `dc:language` do OPF; o resto (CSS, imagens, nav) passa intacto. O arquivo é montado a partir do banco na hora do download.
 

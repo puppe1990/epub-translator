@@ -215,13 +215,11 @@ func (s *SQLiteStore) updateChapter(query string, args ...any) error {
 }
 
 // ResetRunningChapters devolve capítulos travados em 'running' (restart no
-// meio) para a fila — o retry manual e o boot usam isto.
+// meio) para a fila. O status do livro fica intacto: translating segue
+// translating para o boot retomar, paused segue paused.
 func (s *SQLiteStore) ResetRunningChapters() error {
 	if _, err := s.db.Exec(`UPDATE chapters SET status = 'pending' WHERE status = 'running'`); err != nil {
 		return fmt.Errorf("resetar capítulos: %w", err)
-	}
-	if _, err := s.db.Exec(`UPDATE books SET status = 'pending' WHERE status = 'translating'`); err != nil {
-		return fmt.Errorf("resetar livros: %w", err)
 	}
 	return nil
 }

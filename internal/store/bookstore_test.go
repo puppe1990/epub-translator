@@ -155,6 +155,42 @@ func TestStore_resetRunningChapters(t *testing.T) {
 	}
 }
 
+func TestStore_resetRunningChaptersKeepsTranslatingBook(t *testing.T) {
+	s := newTestStore(t)
+	translatingID := seedBook(t, s)
+	pausedID, err := s.CreateBook(models.Book{Title: "Pausado", TargetLanguage: "pt-BR"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	chapters, _ := s.ListChapters(translatingID)
+	if err := s.SetBookStatus(translatingID, "translating"); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.SetChapterRunning(chapters[0].ID); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.SetBookStatus(pausedID, "paused"); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := s.ResetRunningChapters(); err != nil {
+		t.Fatal(err)
+	}
+
+	stuck, _ := s.FindChapter(chapters[0].ID)
+	if stuck.Status != "pending" {
+		t.Errorf("capítulo travado = %q, want pending", stuck.Status)
+	}
+	translating, _ := s.FindBook(translatingID)
+	if translating.Status != "translating" {
+		t.Errorf("livro em tradução = %q, want translating", translating.Status)
+	}
+	paused, _ := s.FindBook(pausedID)
+	if paused.Status != "paused" {
+		t.Errorf("livro pausado = %q, want paused", paused.Status)
+	}
+}
+
 func TestStore_settingsRoundtrip(t *testing.T) {
 	s := newTestStore(t)
 

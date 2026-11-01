@@ -113,6 +113,52 @@ func TestRunner_refusesSecondRunWhileBusy(t *testing.T) {
 	}
 }
 
+func TestRunner_resumeInterruptedRestartsTranslatingBooks(t *testing.T) {
+	s := newTestStore(t)
+	activeID := seedBook(t, s)
+	pausedID := seedBook(t, s)
+	queuedID := seedBook(t, s)
+	activeChapters, _ := s.ListChapters(activeID)
+	if err := s.SetChapterDone(activeChapters[0].ID, "<p>Olá one</p>"); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.SetChapterRunning(activeChapters[1].ID); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.SetBookStatus(activeID, "translating"); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.SetBookStatus(pausedID, "paused"); err != nil {
+		t.Fatal(err)
+	}
+
+	translator := &fakeTranslator{}
+	runner := NewRunner(s, translator)
+	if err := runner.ResumeInterrupted(); err != nil {
+		t.Fatal(err)
+	}
+	runner.Wait(activeID)
+
+	active, _ := s.FindBook(activeID)
+	if active.Status != "done" || active.DoneChapters != 3 {
+		t.Errorf("livro em tradução não retomou: %+v", active)
+	}
+	paused, _ := s.FindBook(pausedID)
+	if paused.Status != "paused" {
+		t.Errorf("pausa não sobreviveu ao boot: %+v", paused)
+	}
+	queued, _ := s.FindBook(queuedID)
+	if queued.Status != "pending" || queued.DoneChapters != 0 {
+		t.Errorf("fila não pedida não pode arrancar no boot: %+v", queued)
+	}
+	translator.mu.Lock()
+	calls := translator.calls
+	translator.mu.Unlock()
+	if calls != 2 {
+		t.Errorf("chamadas = %d, want 2 (capítulo travado + restante do livro em tradução)", calls)
+	}
+}
+
 func TestRunner_marksFailureAndRetryCompletes(t *testing.T) {
 	s := newTestStore(t)
 	bookID := seedBook(t, s)
