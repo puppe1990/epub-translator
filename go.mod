@@ -6,6 +6,7 @@ require (
 	github.com/microcosm-cc/bluemonday v1.0.27
 	github.com/puppe1990/amarra-cais v0.25.1
 	github.com/tiktoken-go/tokenizer v0.10.0
+	golang.org/x/net v0.55.0
 	modernc.org/sqlite v1.53.0
 )
 
@@ -23,7 +24,6 @@ require (
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/traefik/yaegi v0.15.1 // indirect
 	golang.org/x/crypto v0.53.0 // indirect
-	golang.org/x/net v0.55.0 // indirect
 	golang.org/x/sys v0.46.0 // indirect
 	modernc.org/libc v1.73.4 // indirect
 	modernc.org/mathutil v1.7.1 // indirect

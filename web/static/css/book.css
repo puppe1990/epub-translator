@@ -379,10 +379,14 @@
 .preview-pages {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  grid-template-areas: "verso recto";
   min-height: 520px;
   background: #f3ead6;
   border: 1px solid #cbbfa4;
   box-shadow: 0 18px 40px #18322522;
+}
+.preview-pages > :not(.preview-page) {
+  display: none;
 }
 .preview-page {
   min-width: 0;
@@ -390,11 +394,13 @@
   color: #1c1914;
 }
 .preview-verso {
+  grid-area: verso;
   background:
     linear-gradient(90deg, #efe6d2 0%, #f6f0e0 72%, #e7dcc4 100%);
   box-shadow: inset -16px 0 18px -18px #5b4a2a66;
 }
 .preview-recto {
+  grid-area: recto;
   background:
     linear-gradient(90deg, #e4d7bc 0%, #f7f1e2 18%, #fbf6ea 100%);
   box-shadow: inset 16px 0 18px -18px #5b4a2a55;
@@ -441,6 +447,9 @@
   }
   .preview-pages {
     grid-template-columns: 1fr;
+    grid-template-areas:
+      "verso"
+      "recto";
     min-height: 0;
   }
   .preview-verso,

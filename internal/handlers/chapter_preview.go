@@ -10,6 +10,8 @@ import (
 
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/puppe1990/amarra-cais/pkg/cais/httpx"
+	"golang.org/x/net/html"
+	"golang.org/x/net/html/atom"
 
 	"github.com/puppe1990/epub-translator/internal/models"
 	"github.com/puppe1990/epub-translator/internal/store"
@@ -56,7 +58,32 @@ type chapterPreviewView struct {
 }
 
 func previewHTML(raw string) template.HTML {
-	return template.HTML(chapterPreviewPolicy.Sanitize(raw))
+	return template.HTML(serializePreviewFragment(chapterPreviewPolicy.Sanitize(raw)))
+}
+
+// serializePreviewFragment re-parses each pane alone so XHTML empty anchors
+// (`<a id="page_3"/>`) get an end tag. In HTML5 those are not void; an open
+// <a> is a formatting element and the parser clones it as a sibling of the
+// two preview columns, which steals a grid cell and hides the translation.
+func serializePreviewFragment(raw string) string {
+	if strings.TrimSpace(raw) == "" {
+		return ""
+	}
+	nodes, err := html.ParseFragment(strings.NewReader(raw), &html.Node{
+		Type:     html.ElementNode,
+		Data:     "div",
+		DataAtom: atom.Div,
+	})
+	if err != nil {
+		return raw
+	}
+	var builder strings.Builder
+	for _, node := range nodes {
+		if err := html.Render(&builder, node); err != nil {
+			return raw
+		}
+	}
+	return builder.String()
 }
 
 func renderChapterPreview(book models.Book, chapter models.Chapter) (string, error) {

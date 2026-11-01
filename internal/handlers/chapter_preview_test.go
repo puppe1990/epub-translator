@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"golang.org/x/net/html"
+
 	"github.com/puppe1990/epub-translator/internal/models"
 )
 
@@ -236,4 +238,83 @@ func TestBooksShow_keepsPreviewDialogOutsideChapterList(t *testing.T) {
 	if strings.Contains(listHTML, `id="chapter-preview-dialog"`) {
 		t.Error("a modal não pode ficar dentro de #chapter-list — o SSE apagaria ela")
 	}
+}
+
+func TestRenderChapterPreview_emptyPageAnchorsStayInsideEachColumn(t *testing.T) {
+	spread, err := renderChapterPreview(
+		models.Book{SourceLanguage: "en", TargetLanguage: "pt-BR"},
+		models.Chapter{
+			Position:       6,
+			Title:          "Total Recall",
+			SourceText:     `<p>Hello original.<a id="page_20"/></p>`,
+			TranslatedText: `<p>Olá traduzido.<a id="page_20"/></p>`,
+		},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	kids := previewGridItems(t, spread)
+	if len(kids) != 2 {
+		t.Fatalf("preview-pages children = %v, âncora vazia do EPUB vazou para o grid", kids)
+	}
+	if kids[0] != "section.preview-page preview-verso" || kids[1] != "section.preview-page preview-recto" {
+		t.Fatalf("colunas = %v", kids)
+	}
+	if strings.Contains(spread, `<a id="page_20"/>`) {
+		t.Fatal("âncora ainda está self-closing; o HTML5 deixa o <a> aberto")
+	}
+}
+
+func previewGridItems(t *testing.T, spread string) []string {
+	t.Helper()
+	doc, err := html.Parse(strings.NewReader(spread))
+	if err != nil {
+		t.Fatal(err)
+	}
+	pages := findHTMLClass(doc, "preview-pages")
+	if pages == nil {
+		t.Fatal("spread sem .preview-pages")
+	}
+	var kids []string
+	for child := pages.FirstChild; child != nil; child = child.NextSibling {
+		if child.Type != html.ElementNode {
+			continue
+		}
+		kids = append(kids, child.Data+classAttr(child))
+	}
+	return kids
+}
+
+func findHTMLClass(n *html.Node, class string) *html.Node {
+	if n.Type == html.ElementNode && hasClass(n, class) {
+		return n
+	}
+	for child := n.FirstChild; child != nil; child = child.NextSibling {
+		if found := findHTMLClass(child, class); found != nil {
+			return found
+		}
+	}
+	return nil
+}
+
+func hasClass(n *html.Node, class string) bool {
+	for _, attr := range n.Attr {
+		if attr.Key == "class" {
+			for _, item := range strings.Fields(attr.Val) {
+				if item == class {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+func classAttr(n *html.Node) string {
+	for _, attr := range n.Attr {
+		if attr.Key == "class" && attr.Val != "" {
+			return "." + attr.Val
+		}
+	}
+	return ""
 }
