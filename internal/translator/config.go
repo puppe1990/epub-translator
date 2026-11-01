@@ -37,9 +37,7 @@ func Resolve(s store.Store) (Config, error) {
 	}
 
 	if slug := settings[KeyActiveProvider]; slug != "" {
-		if config, ok := providerConfig(s, slug); ok {
-			return config, nil
-		}
+		return providerConfig(s, slug)
 	}
 
 	config := Config{
@@ -53,19 +51,26 @@ func Resolve(s store.Store) (Config, error) {
 	return config, nil
 }
 
-// providerConfig devolve a config do perfil quando ele tem chave salva; sem
-// chave, ok=false e o Resolve cai no fallback legado/ambiente.
-func providerConfig(s store.Store, slug string) (Config, bool) {
-	preset, _ := PresetBySlug(slug)
+// An explicit provider must never silently translate using another endpoint.
+func providerConfig(s store.Store, slug string) (Config, error) {
+	preset, ok := PresetBySlug(slug)
+	if !ok {
+		return Config{}, fmt.Errorf("provedor ativo %q desconhecido — escolha um provedor em /settings", slug)
+	}
 	provider, err := s.GetProvider(slug)
 	if err != nil || provider.APIKey == "" {
-		return Config{}, false
+		return Config{}, fmt.Errorf("%s está selecionado, mas não tem chave salva — configure sua chave em /settings", preset.Name)
+	}
+	baseURL := firstNonEmpty(provider.BaseURL, preset.BaseURL)
+	model := firstNonEmpty(provider.Model, preset.DefaultModel)
+	if baseURL == "" || model == "" {
+		return Config{}, fmt.Errorf("%s está incompleto — preencha Base URL e modelo em /settings", preset.Name)
 	}
 	return Config{
-		BaseURL: firstNonEmpty(provider.BaseURL, preset.BaseURL, os.Getenv("TRANSLATE_BASE_URL"), "https://api.openai.com/v1"),
+		BaseURL: baseURL,
 		APIKey:  provider.APIKey,
-		Model:   firstNonEmpty(provider.Model, preset.DefaultModel, os.Getenv("TRANSLATE_MODEL"), "gpt-4.1-mini"),
-	}, true
+		Model:   model,
+	}, nil
 }
 
 func firstNonEmpty(values ...string) string {

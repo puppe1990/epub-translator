@@ -20,6 +20,7 @@ func registerRoutes(r *cais.Router, deps Deps, cfg cais.Config) {
 	r.Get("/books/{id}/events", cais.IntParam("id", books.Events))
 	r.Get("/settings", settings.Show)
 	r.Post("/settings/test", settings.Test)
+	r.Post("/settings/active-provider", settings.SelectProvider)
 	r.Post("/settings/providers/{slug}", settings.SaveProvider)
 	r.Post("/settings/providers/{slug}/activate", settings.ActivateProvider)
 }

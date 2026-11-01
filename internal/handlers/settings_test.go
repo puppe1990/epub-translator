@@ -42,7 +42,7 @@ func TestSettingsShow_listsProvidersAndMasksKeys(t *testing.T) {
 	page := rr.Body.String()
 	for _, want := range []string{
 		"NVIDIA NIM", "OpenAI", "Gemini", "Groq", "OpenRouter", "Personalizado",
-		"••••1234", "Ativo:", "Usar este provedor",
+		"••••1234", "Ativo:", "Um provedor por vez",
 		"minimaxai/minimax-m3.1-flash",
 	} {
 		if !strings.Contains(page, want) {
@@ -196,7 +196,7 @@ func TestSettingsActivate_withSavedKeySetsActive(t *testing.T) {
 	}
 }
 
-func TestSettingsActivate_allowsEnvKeyFallback(t *testing.T) {
+func TestSettingsActivate_doesNotActivateProviderUsingAnotherProvidersEnvKey(t *testing.T) {
 	t.Setenv("TRANSLATE_API_KEY", "chave-ambiente")
 	handler, s := newSettingsHandler(t)
 
@@ -205,7 +205,7 @@ func TestSettingsActivate_allowsEnvKeyFallback(t *testing.T) {
 	rr := httptest.NewRecorder()
 	handler.ActivateProvider(rr, req)
 
-	if active, _ := s.GetSetting(translator.KeyActiveProvider); active != "groq" {
-		t.Errorf("ativo = %q, want groq (fallback do ambiente)", active)
+	if active, _ := s.GetSetting(translator.KeyActiveProvider); active != "" {
+		t.Errorf("ativo = %q; provedor sem chave própria não pode ser ativado", active)
 	}
 }

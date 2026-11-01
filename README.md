@@ -29,10 +29,10 @@ A página **/settings** mantém um **perfil por provedor**, cada um com a própr
 | `openrouter` | `https://openrouter.ai/api/v1`                            | `google/gemini-2.5-flash`      |
 | `custom`     | livre (formulário)                                        | livre                          |
 
-- **Trocar de provedor** = clicar em "Usar este provedor" — vale no próximo capítulo, mesmo no meio de um livro (útil quando um provedor bate cota/limite; veja `attempts` e o erro na página do livro).
+- **Trocar de provedor** = escolher uma opção em **Um provedor por vez** e clicar em **Ativar provedor selecionado**. Apenas um fica ativo; os demais mantêm suas chaves salvas. A mudança vale no próximo capítulo, mesmo no meio de um livro.
 - **NVIDIA NIM** oferece um seletor pesquisável de modelos em `/settings`. Escolha e clique em **Salvar**: a chave existente é preservada e o modelo passa a valer no próximo capítulo. A lista é curada, depende da disponibilidade da NVIDIA e mantém qualquer modelo já salvo fora dela.
 - **Testar a chave ativa** faz uma tradução mínima pelo endpoint real.
-- Resolução: perfil ativo com chave > configuração legada (`translate_*`)/ambiente > padrão. Env: `TRANSLATE_BASE_URL`, `TRANSLATE_MODEL`, `TRANSLATE_API_KEY` (ou `OPENAI_API_KEY`).
+- Resolução: com um perfil ativo, usa exclusivamente sua configuração e exige sua própria chave. Sem perfil selecionado, usa a configuração legada (`translate_*`)/ambiente e os padrões. Não há troca automática para outro provedor quando o selecionado falha. Env: `TRANSLATE_BASE_URL`, `TRANSLATE_MODEL`, `TRANSLATE_API_KEY` (ou `OPENAI_API_KEY`).
 - Só o perfil `custom` aceita base URL livre; os presets fixam a base para a chave não ser apontada a um endpoint arbitrário sem intenção.
 
 > As chaves ficam em texto puro no SQLite — é um app pessoal. Em produção as envs do Cleat servem de fallback e o painel do Cleat mascara segredos.

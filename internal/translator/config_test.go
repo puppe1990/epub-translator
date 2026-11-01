@@ -90,7 +90,7 @@ func TestResolve_activeProviderWins(t *testing.T) {
 	}
 }
 
-func TestResolve_activeProviderWithoutKeyFallsBackToEnv(t *testing.T) {
+func TestResolve_activeProviderWithoutKeyDoesNotUseAnotherProvider(t *testing.T) {
 	s := newTestStore(t)
 	t.Setenv("TRANSLATE_API_KEY", "chave-ambiente")
 
@@ -98,11 +98,11 @@ func TestResolve_activeProviderWithoutKeyFallsBackToEnv(t *testing.T) {
 		t.Fatal(err)
 	}
 	config, err := Resolve(s)
-	if err != nil {
-		t.Fatal(err)
+	if err == nil || !strings.Contains(err.Error(), "Groq") {
+		t.Fatalf("err = %v; esperava orientação para configurar a chave do Groq", err)
 	}
-	if config.APIKey != "chave-ambiente" {
-		t.Errorf("chave = %q, want fallback do ambiente", config.APIKey)
+	if config.APIKey != "" {
+		t.Error("perfil explícito sem chave não pode usar a chave de outro provedor")
 	}
 }
 
@@ -119,6 +119,26 @@ func TestResolve_customProviderUsesSavedBaseAndModel(t *testing.T) {
 	config, _ := Resolve(s)
 	if config.BaseURL != "https://meu-proxy/v1" || config.Model != "meu-modelo" {
 		t.Errorf("custom = %+v", config)
+	}
+}
+
+func TestResolve_incompleteCustomProviderDoesNotBorrowEnvironmentConfig(t *testing.T) {
+	t.Setenv("TRANSLATE_BASE_URL", "https://outro-provedor.example/v1")
+	t.Setenv("TRANSLATE_MODEL", "modelo-de-outro-provedor")
+	for _, provider := range []models.Provider{
+		{Slug: "custom", Model: "meu-modelo", APIKey: "chave-custom"},
+		{Slug: "custom", BaseURL: "https://meu-proxy.example/v1", APIKey: "chave-custom"},
+	} {
+		s := newTestStore(t)
+		if err := s.SaveProvider(provider); err != nil {
+			t.Fatal(err)
+		}
+		if err := s.SetSetting(KeyActiveProvider, "custom"); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := Resolve(s); err == nil {
+			t.Error("perfil personalizado incompleto não pode usar endpoint ou modelo de outro provedor")
+		}
 	}
 }
 

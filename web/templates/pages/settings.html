@@ -7,6 +7,22 @@
     <div class="active-provider-summary"><span class="eyebrow">{{ if .ActiveName }}Ativo: {{ .ActiveName }}{{ else }}Configuração do ambiente{{ end }}</span><strong>{{ .Model }}</strong><span>Chave {{ .KeyOrigin }}</span></div>
     <form action="/settings/test" method="post">{{ csrfField .CSRFToken }}<button type="submit" class="button button-secondary">Testar conexão <span>↗</span></button></form>
   </section>
+  <form action="/settings/active-provider" method="post" class="provider-selection">
+    {{ csrfField .CSRFToken }}
+    <fieldset>
+      <legend>Um provedor por vez</legend>
+      <p id="provider-selection-help">Somente o selecionado será usado nos próximos capítulos. Salvar uma chave não ativa o provedor.</p>
+      <div class="provider-choices">
+        {{ range .Providers }}
+        <label class="provider-choice {{ if not .HasKey }}provider-choice-unavailable{{ end }}" for="activate-{{ .Slug }}">
+          <input type="radio" id="activate-{{ .Slug }}" name="provider" value="{{ .Slug }}" {{ if .Active }}checked{{ end }} {{ if not .HasKey }}disabled{{ end }} required aria-describedby="provider-selection-help" />
+          <span>{{ .Name }}<small>{{ if .HasKey }}{{ if .Active }}Ativo agora{{ else }}Pronto para ativar{{ end }}{{ else }}Salve uma chave abaixo{{ end }}</small></span>
+        </label>
+        {{ end }}
+      </div>
+    </fieldset>
+    <button type="submit" class="button button-primary">Ativar provedor selecionado {{ template "icon_arrow" . }}</button>
+  </form>
   <header class="section-heading provider-section-heading"><div><h2>Provedores de tradução</h2><p class="muted">Salve uma chave e ative o provedor que deseja usar.</p></div><span class="provider-total">6 opções</span></header>
   <div class="provider-grid">
     {{ range .Providers }}
@@ -21,7 +37,7 @@
         <div class="field"><label for="key-{{ .Slug }}">Chave da API</label><input id="key-{{ .Slug }}" type="password" name="api_key" value="" autocomplete="new-password" placeholder="{{ if .HasKey }}Deixe vazio para manter a chave{{ else }}Cole sua chave aqui{{ end }}" /></div>
         <button type="submit" class="button button-secondary provider-save">Salvar</button>
       </form>
-      <footer class="provider-footer"><form action="/settings/providers/{{ .Slug }}/activate" method="post">{{ csrfField $.CSRFToken }}<button type="submit" class="text-button">{{ if .Active }}Usar este provedor · ativo{{ else }}Usar este provedor <span>→</span>{{ end }}</button></form><details class="endpoint-details"><summary>Endpoint</summary><code>{{ .BaseURL }}</code></details></footer>
+      <footer class="provider-footer"><span class="provider-key-state">{{ if .Active }}Único provedor ativo{{ else if .HasKey }}Disponível na seleção acima{{ else }}Adicione uma chave para ativar{{ end }}</span><details class="endpoint-details"><summary>Endpoint</summary><code>{{ .BaseURL }}</code></details></footer>
     </article>
     {{ end }}
   </div>

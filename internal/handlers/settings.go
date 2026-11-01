@@ -140,8 +140,29 @@ func (h *SettingsHandler) SaveProvider(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/settings", http.StatusSeeOther)
 }
 
-// ActivateProvider troca o provedor ativo; sem chave salva a tradução cai no
-// fallback do ambiente e o flash avisa.
+// SelectProvider accepts the single radio group without duplicating activation.
+func (h *SettingsHandler) SelectProvider(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		httpx.ServerError(w, err, h.cfg)
+		return
+	}
+	selected := r.PostForm["provider"]
+	if len(selected) != 1 {
+		flash.Set(w, "alert", "Escolha um único provedor para ativar. O provedor atual foi mantido.", h.cfg.CookieSecure())
+		http.Redirect(w, r, "/settings", http.StatusSeeOther)
+		return
+	}
+	slug := strings.TrimSpace(selected[0])
+	if _, ok := translator.PresetBySlug(slug); !ok {
+		flash.Set(w, "alert", fmt.Sprintf("Provedor %q inválido. Escolha uma das opções da lista.", slug), h.cfg.CookieSecure())
+		http.Redirect(w, r, "/settings", http.StatusSeeOther)
+		return
+	}
+	r.SetPathValue("slug", slug)
+	h.ActivateProvider(w, r)
+}
+
+// ActivateProvider replaces the one active_provider setting, keeping saved keys.
 func (h *SettingsHandler) ActivateProvider(w http.ResponseWriter, r *http.Request) {
 	preset, ok := translator.PresetBySlug(r.PathValue("slug"))
 	if !ok {
@@ -150,19 +171,15 @@ func (h *SettingsHandler) ActivateProvider(w http.ResponseWriter, r *http.Reques
 	}
 	provider, err := h.store.GetProvider(preset.Slug)
 	if err != nil || provider.APIKey == "" {
-		if os.Getenv("TRANSLATE_API_KEY") == "" && os.Getenv("OPENAI_API_KEY") == "" {
-			flash.Set(w, "alert", fmt.Sprintf("Salve a chave do %s antes de ativar.", preset.Name), h.cfg.CookieSecure())
-			http.Redirect(w, r, "/settings", http.StatusSeeOther)
-			return
-		}
-		flash.Set(w, "notice", fmt.Sprintf("%s ativo (usando a chave do ambiente).", preset.Name), h.cfg.CookieSecure())
-	} else {
-		flash.Set(w, "notice", fmt.Sprintf("Provedor ativo: %s.", preset.Name), h.cfg.CookieSecure())
+		flash.Set(w, "alert", fmt.Sprintf("Salve a chave do %s antes de ativar. O provedor atual foi mantido.", preset.Name), h.cfg.CookieSecure())
+		http.Redirect(w, r, "/settings", http.StatusSeeOther)
+		return
 	}
 	if err := h.store.SetSetting(translator.KeyActiveProvider, preset.Slug); err != nil {
 		httpx.ServerError(w, err, h.cfg)
 		return
 	}
+	flash.Set(w, "notice", fmt.Sprintf("%s é o único provedor ativo. A mudança vale no próximo capítulo.", preset.Name), h.cfg.CookieSecure())
 	http.Redirect(w, r, "/settings", http.StatusSeeOther)
 }
 
