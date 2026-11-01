@@ -46,6 +46,52 @@ func TestClient_Translate_sendsOpenAICompatibleRequest(t *testing.T) {
 	}
 }
 
+func TestClient_Translate_rivaRestoresEmptyAnchorsDroppedByModel(t *testing.T) {
+	source := `<h2 id="x"><a id="page_3"/><a id="ch01"/>CHAPTER 1</h2><p>Hello world, good morning everyone.</p>`
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var payload chatRequest
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			t.Errorf("payload inválido: %v", err)
+			return
+		}
+		user := payload.Messages[1].Content
+		if strings.Contains(user, "<a ") || strings.Contains(user, "<h2") {
+			t.Errorf("Riva recebeu tag crua: %q", user)
+		}
+		out := user
+		_, tags := maskHTMLTags(source)
+		for i, tag := range tags {
+			if selfClosingTag(tag) {
+				out = strings.Replace(out, tagPlaceholder(i), "", 1)
+			}
+		}
+		out = strings.ReplaceAll(out, "CHAPTER 1", "CAPÍTULO 1")
+		out = strings.ReplaceAll(out, "Hello world, good morning everyone.", "Olá mundo, bom dia a todas as pessoas.")
+		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":` + jsonString(out) + `}}]}`))
+	}))
+	defer server.Close()
+
+	client := Client{
+		BaseURL: server.URL, APIKey: "k", Model: "nvidia/riva-translate-4b-instruct-v2",
+		SourceLanguage: "en", HTTP: server.Client(),
+	}
+	got, err := client.Translate(context.Background(), "pt-BR", "Traduza para português do Brasil:\n\n"+source)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := ValidateBody(source, got); err != nil {
+		t.Fatalf("tradução com âncoras restauradas deveria validar: %v\ngot=%s", err, got)
+	}
+	if !strings.Contains(got, `id="page_3"`) || !strings.Contains(got, `id="ch01"`) {
+		t.Errorf("perdeu âncora de página: %s", got)
+	}
+}
+
+func jsonString(s string) string {
+	raw, _ := json.Marshal(s)
+	return string(raw)
+}
+
 func TestClient_Translate_rivaUsesLanguagePairAndBareXHTML(t *testing.T) {
 	var payload chatRequest
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -64,8 +110,15 @@ func TestClient_Translate_rivaUsesLanguagePairAndBareXHTML(t *testing.T) {
 	if payload.Messages[0].Content != "en-pt-br" {
 		t.Errorf("system Riva = %q, want en-pt-br", payload.Messages[0].Content)
 	}
-	if payload.Messages[1].Content != "<p>Hello world.</p>" {
-		t.Errorf("user Riva = %q; o par de idiomas não aceita o prompt literário", payload.Messages[1].Content)
+	user := payload.Messages[1].Content
+	if strings.Contains(user, "Traduza para") || strings.Contains(user, "ATENÇÃO") {
+		t.Errorf("user Riva = %q; o par de idiomas não aceita o prompt literário", user)
+	}
+	if strings.Contains(user, "<p>") {
+		t.Errorf("user Riva = %q; tags cruas são mascaradas para o modelo não dropar âncoras", user)
+	}
+	if !strings.Contains(user, "Hello world.") {
+		t.Errorf("user Riva perdeu o texto: %q", user)
 	}
 	if payload.MaxTokens < 1 {
 		t.Error("Riva precisa de max_tokens > 0; senão o NIM reserva 0 tokens de saída quando o prompt enche a janela")

@@ -55,11 +55,12 @@ func (c Client) Translate(ctx context.Context, targetLanguage, content string) (
 	if httpClient == nil {
 		httpClient = &http.Client{Timeout: 240 * time.Second}
 	}
+	messages, tags := c.messages(targetLanguage, content)
 	payload, err := json.Marshal(chatRequest{
 		Model:       c.Model,
 		Temperature: 0.2,
 		MaxTokens:   c.maxOutputTokens(),
-		Messages:    c.messages(targetLanguage, content),
+		Messages:    messages,
 	})
 	if err != nil {
 		return "", fmt.Errorf("montar requisição: %w", err)
@@ -90,7 +91,11 @@ func (c Client) Translate(ctx context.Context, targetLanguage, content string) (
 	if len(decoded.Choices) == 0 {
 		return "", fmt.Errorf("provedor não devolveu tradução")
 	}
-	return strings.TrimSpace(decoded.Choices[0].Message.Content), nil
+	out := strings.TrimSpace(decoded.Choices[0].Message.Content)
+	if len(tags) > 0 {
+		out = strings.TrimSpace(unmaskHTMLTags(out, tags))
+	}
+	return out, nil
 }
 
 func (c Client) maxOutputTokens() int {
@@ -100,17 +105,18 @@ func (c Client) maxOutputTokens() int {
 	return 0
 }
 
-func (c Client) messages(targetLanguage, content string) []chatMessage {
+func (c Client) messages(targetLanguage, content string) ([]chatMessage, []string) {
 	if strings.Contains(c.Model, "riva-translate") {
+		masked, tags := maskHTMLTags(rivaSourceText(content))
 		return []chatMessage{
 			{Role: "system", Content: rivaLanguagePair(c.SourceLanguage, targetLanguage)},
-			{Role: "user", Content: rivaSourceText(content)},
-		}
+			{Role: "user", Content: masked},
+		}, tags
 	}
 	return []chatMessage{
 		{Role: "system", Content: SystemPrompt(targetLanguage)},
 		{Role: "user", Content: content},
-	}
+	}, nil
 }
 
 // Service converte erros de validação em retentativas, com um lembrete extra
