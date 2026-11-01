@@ -1,4 +1,4 @@
-const CACHE_VERSION = 7;
+const CACHE_VERSION = 8;
 const CACHE = "cais-static-v" + CACHE_VERSION;
 
 const PRECACHE = [
@@ -10,9 +10,14 @@ const PRECACHE = [
   "/static/css/forms.css",
   "/static/js/workspace.js",
   "/static/js/amarra.js",
-  "/static/manifest.webmanifest",
-  "/static/icons/icon-192.png",
-  "/static/icons/icon-512.png",
+  "/static/manifest.webmanifest?v=2",
+  "/static/icons/icon-192.png?v=2",
+  "/static/icons/icon-512.png?v=2",
+  "/static/icons/icon-512-maskable.png?v=2",
+  "/static/icons/apple-touch-icon.png?v=2",
+  "/static/favicon.svg?v=2",
+  "/static/favicon.ico?v=2",
+  "/static/favicon-32.png?v=2",
   "/static/offline.html",
 ];
 
