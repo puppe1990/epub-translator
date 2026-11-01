@@ -24,6 +24,9 @@ func (h *SettingsHandler) loadProviderModels(ctx context.Context, rows []provide
 		pending.Go(func() {
 			options, err := h.modelCatalog.List(ctx, row.Slug, saved[row.Slug].APIKey)
 			if len(options) > 0 {
+				if row.Slug == "openrouter" {
+					options = mergeCuratedFirst(providerModelOptions(row.Slug, ""), options)
+				}
 				row.ModelOptions = includeSelectedModel(options, row.Model)
 			}
 			if err != nil {
@@ -42,7 +45,27 @@ func providerModelOptions(slug, selected string) []string {
 	case "groq":
 		options = []string{"openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b", "allam-2-7b"}
 	case "openrouter":
-		options = []string{"google/gemini-2.5-flash", "google/gemini-2.5-flash-lite", "anthropic/claude-haiku-4.5", "openai/gpt-oss-120b", "openai/gpt-5.4-mini", "deepseek/deepseek-v3.2", "google/gemma-4-31b-it:free"}
+		options = []string{
+			"google/gemini-2.5-flash",
+			"google/gemini-2.5-flash-lite",
+			"anthropic/claude-haiku-4.5",
+			"openai/gpt-oss-120b",
+			"openai/gpt-5.4-mini",
+			"deepseek/deepseek-v3.2",
+			"recursive/flint-v1.0:free",
+			"xingchen-agi/xing4.0-29b-a4b:free",
+			"nvidia/nemotron-3.5-super-vl:free",
+			"dots-studio/dots-3-note-preview:free",
+			"liquid/lfm-2.5-2.6b:free",
+			"nvidia/nemotron-3.5-lightning:free",
+			"thinkingmachines/inkling-small:free",
+			"thinkingmachines/inkling:free",
+			"cohere/north-mini-code:free",
+			"nvidia/nemotron-3-ultra-550b-a55b:free",
+			"nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+			"google/gemma-4-26b-a4b-it:free",
+			"google/gemma-4-31b-it:free",
+		}
 	case "nvidia":
 		options = []string{
 			"nvidia/riva-translate-4b-instruct-v2",
@@ -67,6 +90,21 @@ func providerModelOptions(slug, selected string) []string {
 		return nil
 	}
 	return includeSelectedModel(options, selected)
+}
+
+func mergeCuratedFirst(curated, live []string) []string {
+	seen := make(map[string]bool, len(curated)+len(live))
+	out := make([]string, 0, len(curated)+len(live))
+	for _, group := range [][]string{curated, live} {
+		for _, id := range group {
+			if id == "" || seen[id] {
+				continue
+			}
+			seen[id] = true
+			out = append(out, id)
+		}
+	}
+	return out
 }
 
 func includeSelectedModel(options []string, selected string) []string {
