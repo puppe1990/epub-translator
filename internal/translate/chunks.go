@@ -23,6 +23,11 @@ func InputCharBudget(model string) int {
 	if strings.Contains(lower, "gemini") {
 		return geminiInputCharBudget
 	}
+	// NIM DeepSeek só manda headers no fim da geração. Capítulo ~8k tokens
+	// (Chapter Eight) estourou 240s × 3. Mesmo teto do Gemini: ~2–3 partes.
+	if strings.Contains(lower, "deepseek") {
+		return geminiInputCharBudget
+	}
 	return 0
 }
 

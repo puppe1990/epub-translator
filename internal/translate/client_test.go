@@ -7,7 +7,17 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
+
+func TestDefaultHTTPClient_waitsForNIMBufferedCompletion(t *testing.T) {
+	// DeepSeek-v4.1-flash no NIM só envia headers no fim da geração.
+	// Chapter Eight (~8k tokens) estourou 240s × 3 tentativas = 12 min.
+	got := defaultHTTPClient().Timeout
+	if got < 8*time.Minute {
+		t.Fatalf("timeout = %s, NIM precisa de folga para o primeiro header", got)
+	}
+}
 
 func TestClient_Translate_sendsOpenAICompatibleRequest(t *testing.T) {
 	var gotAuth, gotPath string

@@ -63,6 +63,15 @@ func TestInputCharBudget_rivaLeavesRoomForOutputIn8k(t *testing.T) {
 	}
 }
 
+func TestInputCharBudget_deepseekSplitsSoNIMCanFinishUnderTimeout(t *testing.T) {
+	// NIM DeepSeek só manda headers quando a geração acaba. Um capítulo de
+	// ~8k tokens (Chapter Eight) estoura 4 min à espera do primeiro byte.
+	budget := InputCharBudget("deepseek-ai/deepseek-v4.1-flash")
+	if budget <= 0 {
+		t.Fatal("DeepSeek NIM precisa fatiar capítulo grande senão o Client.Timeout corta sem headers")
+	}
+}
+
 func TestInputCharBudget_geminiSplitsLargeIndexUnderOutputCap(t *testing.T) {
 	// gemini-3.5-flash-lite: 1M de entrada, 65_536 de saída. O INDEX do
 	// Total Recall tem ~80k tokens / 218k chars — um shot só trunca e o

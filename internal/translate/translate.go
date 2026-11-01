@@ -50,10 +50,18 @@ type chatResponse struct {
 	} `json:"choices"`
 }
 
+// NIM DeepSeek só manda headers quando a geração termina. 4 min cortava
+// Chapter Eight (~8k tokens) com "awaiting headers".
+const providerHTTPTimeout = 10 * time.Minute
+
+func defaultHTTPClient() *http.Client {
+	return &http.Client{Timeout: providerHTTPTimeout}
+}
+
 func (c Client) Translate(ctx context.Context, targetLanguage, content string) (string, error) {
 	httpClient := c.HTTP
 	if httpClient == nil {
-		httpClient = &http.Client{Timeout: 240 * time.Second}
+		httpClient = defaultHTTPClient()
 	}
 	messages, tags := c.messages(targetLanguage, content)
 	payload, err := json.Marshal(chatRequest{

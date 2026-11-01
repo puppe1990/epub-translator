@@ -56,6 +56,27 @@ func TestPrepare_rivaGetsInputCharBudget(t *testing.T) {
 	}
 }
 
+func TestPrepare_deepseekGetsInputCharBudget(t *testing.T) {
+	s := newTestStore(t)
+	_ = s.SaveProvider(models.Provider{
+		Slug: "nvidia", BaseURL: "https://integrate.api.nvidia.com/v1",
+		Model: "deepseek-ai/deepseek-v4.1-flash", APIKey: "k",
+	})
+	_ = s.SetSetting(KeyActiveProvider, "nvidia")
+	prepared, _, err := (Configured{Store: s}).Prepare()
+	if err != nil {
+		t.Fatal(err)
+	}
+	service, ok := prepared.(translate.Service)
+	if !ok {
+		t.Fatalf("Prepare devolveu %T, want translate.Service", prepared)
+	}
+	want := translate.InputCharBudget("deepseek-ai/deepseek-v4.1-flash")
+	if service.MaxInputChars != want || want <= 0 {
+		t.Errorf("MaxInputChars = %d, want %d (DeepSeek NIM timeout)", service.MaxInputChars, want)
+	}
+}
+
 func TestPrepare_geminiGetsInputCharBudget(t *testing.T) {
 	s := newTestStore(t)
 	_ = s.SaveProvider(models.Provider{
