@@ -3,7 +3,7 @@
 Envie um EPUB, acompanhe a tradução **capítulo a capítulo** e baixe o arquivo traduzido — em [Amarra](https://github.com/puppe1990/amarra-cais) (HTML + Drive + SSE + SQLite).
 
 - `GET /` — envio (multipart) + lista de livros com progresso
-- `GET /books/{id}` — progresso ao vivo (**SSE** morfa `#book-progress` e `#chapter-list`), tabela de capítulos com status/tentativas/erro
+- `GET /books/{id}` — progresso ao vivo (**SSE** morfa `#book-progress` e `#chapter-list`), tabela de capítulos com status/tentativas/erro; `?status=pending|running|done|failed` filtra a lista (o SSE repete o query)
 - `POST /books/{id}/retry` — roda a fila (pendentes + falhos)
 - `POST /books/{id}/pause` — cancela a chamada atual e pausa o livro, preservando os capítulos concluídos
 - `POST /books/{id}/chapters/{cid}/retry` — devolve o capítulo falho à fila e traduz **ele** em seguida (fura a ordem da fila)
@@ -19,6 +19,8 @@ Envie um EPUB, acompanhe a tradução **capítulo a capítulo** e baixe o arquiv
 4. **Download** → `internal/epub.Rebuild` copia o zip original trocando apenas o miolo de `<body>` dos capítulos traduzidos e o `dc:language` do OPF; o resto (CSS, imagens, nav) passa intacto. O arquivo é montado a partir do banco na hora do download.
 
 Na página do livro, **Pausar** interrompe a requisição atual e salva o estado **Pausado**. O capítulo interrompido volta à fila sem contar como falha. **Retomar tradução** continua pelos pendentes e falhos; os concluídos permanecem intactos. A pausa sobrevive ao reinício do servidor, e os controles acompanham o estado ao vivo por SSE.
+
+A lista tem filtro por status (Todos / Na fila / Traduzindo / Traduzido / Falhou) via `?status=`. Os chips ficam dentro de `#chapter-list`, então o SSE atualiza as contagens junto com as linhas. Sem query, ou com valor desconhecido, a tabela inteira aparece.
 
 A lista mostra **tokens** cl100k do XHTML original (persistidos na inserção; capítulos antigos recebem backfill na abertura do banco), **tempo**, **provedor** e **modelo** da última execução de cada capítulo. A configuração é capturada antes da chamada, e a duração inclui as retentativas automáticas daquela execução. O tempo em andamento atualiza por SSE; sucessos, falhas e pausas preservam a duração final. Ao retentar, esses campos passam a representar a nova execução. Traduções anteriores ao registro mostram “—”; seus dados não são inferidos pela configuração atual.
 

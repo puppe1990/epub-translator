@@ -103,6 +103,12 @@ var fragmentsTemplate = template.Must(template.New("fragments").Parse(`
 {{ end }}
 
 {{ define "chapter-list" }}
+<nav class="chapter-status-filters" aria-label="Filtrar capítulos por status">
+  {{ range .Filters }}
+  <a href="{{ .Href }}" class="chapter-filter{{ if .Active }} is-current{{ end }}"{{ if .Active }} aria-current="page"{{ end }}>{{ .Label }} <span>{{ .Count }}</span></a>
+  {{ end }}
+</nav>
+{{ if .Chapters }}
 <table class="chapter-table">
   <caption class="sr-only">Capítulos e estado da tradução</caption>
   <thead><tr><th scope="col" class="chapter-number">Nº</th><th scope="col">Capítulo</th><th scope="col" class="chapter-tokens">Tokens</th><th scope="col" class="chapter-status">Status</th><th scope="col" class="chapter-duration">Tempo</th><th scope="col" class="chapter-execution">Provedor / modelo</th><th scope="col" class="chapter-attempts">Falhas</th><th scope="col" class="chapter-action"><span class="sr-only">Ações</span></th></tr></thead>
@@ -121,6 +127,9 @@ var fragmentsTemplate = template.Must(template.New("fragments").Parse(`
     {{ end }}
   </tbody>
 </table>
+{{ else }}
+<p class="chapter-filter-empty">Nenhum capítulo com este status.</p>
+{{ end }}
 {{ end }}
 `))
 
@@ -163,14 +172,16 @@ func chapterRowsAt(chapters []models.Chapter, now time.Time) []chapterRow {
 
 // RenderBookFragments devolve o progresso e a lista de capítulos no formato
 // que o SSE morfa (innerHTML de #book-progress e #chapter-list).
-func RenderBookFragments(book models.Book, chapters []models.Chapter) (progress, list string, err error) {
+func RenderBookFragments(book models.Book, chapters []models.Chapter, statusFilter string) (progress, list string, err error) {
 	progress, err = renderFragment("book-progress", newBookView(book))
 	if err != nil {
 		return "", "", err
 	}
+	status := chapterStatusFilter(statusFilter)
 	list, err = renderFragment("chapter-list", map[string]any{
 		"BookID":   book.ID,
-		"Chapters": chapterRows(chapters),
+		"Filters":  chapterFilterChips(book.ID, chapters, status),
+		"Chapters": chapterRows(filterChaptersByStatus(chapters, status)),
 	})
 	if err != nil {
 		return "", "", err

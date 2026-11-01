@@ -143,6 +143,53 @@
   border-radius: 10px;
   overflow: auto;
 }
+.chapter-status-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+  background: rgb(var(--amarra-tide) / 0.18);
+  position: sticky;
+  left: 0;
+}
+.chapter-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 550;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-decoration: none;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 5px 10px;
+}
+.chapter-filter span {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.chapter-filter:hover,
+.chapter-filter:focus-visible {
+  color: rgb(var(--amarra-foam));
+  border-color: #31584088;
+}
+.chapter-filter.is-current {
+  color: #f2edda;
+  background: #315840;
+  border-color: #315840;
+}
+.chapter-filter-empty {
+  margin: 0;
+  padding: 28px 18px;
+  color: var(--muted);
+  font-size: 13px;
+  font-style: italic;
+  text-align: center;
+}
 .chapter-table {
   width: 100%;
   min-width: 980px;
