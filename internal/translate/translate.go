@@ -113,10 +113,17 @@ func (c Client) messages(targetLanguage, content string) ([]chatMessage, []strin
 			{Role: "user", Content: masked},
 		}, tags
 	}
+	system := SystemPrompt(targetLanguage)
+	user := content
+	var tags []string
+	if strings.Contains(strings.ToLower(c.Model), "gemini") {
+		user, tags = maskHTMLTags(content)
+		system += "\n6. Os marcadores ⟦tN⟧ são as tags HTML: copie cada um exatamente, sem traduzir nem omitir."
+	}
 	return []chatMessage{
-		{Role: "system", Content: SystemPrompt(targetLanguage)},
-		{Role: "user", Content: content},
-	}, nil
+		{Role: "system", Content: system},
+		{Role: "user", Content: user},
+	}, tags
 }
 
 // Service converte erros de validação em retentativas, com um lembrete extra
