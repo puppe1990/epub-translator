@@ -28,15 +28,11 @@ func selfClosingTag(tag string) bool {
 	return !strings.HasPrefix(t, "</") && strings.HasSuffix(t, "/>")
 }
 
-// keepIfDropped recoloca âncoras do EPUB que o modelo dropa: page-breaks
-// self-closing (`<a id="page_3"/>`) e o par do INDEX (`<a href>…</a>`),
-// em que o Gemini costuma copiar o </a> e omitir a abertura.
-func keepIfDropped(tag string) bool {
-	if selfClosingTag(tag) {
-		return true
-	}
-	match := tagRE.FindStringSubmatch(tag)
-	return len(match) >= 3 && strings.EqualFold(match[2], "a")
+// keepIfDropped recoloca qualquer tag cujo placeholder o modelo omitiu.
+// O XHTML original é a fonte da verdade; o modelo só traduz o texto. Sem
+// isso o INDEX perde um </p> (cap. 222: fonte 401, resposta 400).
+func keepIfDropped(_ string) bool {
+	return true
 }
 
 func unmaskHTMLTags(text string, tags []string) string {

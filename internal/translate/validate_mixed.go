@@ -17,6 +17,12 @@ const (
 	mixedCopyJaccard      = 0.78
 )
 
+// translatableWordCount: legendas de foto com só o nome (Peter Brenner)
+// não têm o que traduzir — ValidateBody deixa o texto idêntico passar.
+func translatableWordCount(text string) int {
+	return len(strings.Fields(text))
+}
+
 var sentenceSplitRE = regexp.MustCompile(`[.!?]+(?:\s+|$)`)
 
 // denseShortParagraphs detecta INDEX/sumário: dezenas de <p> curtos. O

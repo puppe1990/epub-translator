@@ -306,7 +306,7 @@ func ValidateBody(source, out string) error {
 	}
 
 	sourceText, outText := plainText(source), plainText(out)
-	if sourceText != "" && outText == sourceText {
+	if sourceText != "" && outText == sourceText && translatableWordCount(sourceText) >= 4 {
 		return fmt.Errorf("texto idêntico ao original (não traduziu)")
 	}
 	if sourceText != "" {

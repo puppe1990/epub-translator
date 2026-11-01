@@ -57,6 +57,14 @@ func TestValidateBody_rejectsUntranslated(t *testing.T) {
 	}
 }
 
+func TestValidateBody_acceptsUntranslatedPhotoCaptionName(t *testing.T) {
+	// Cap. 55/128 do Total Recall: só o nome na legenda da foto.
+	source := `<div class="group"><p class="image"><img alt="images" src="x.jpeg"/></p><p class="caption"><span class="txit">Peter Brenner</span></p></div>`
+	if err := ValidateBody(source, source); err != nil {
+		t.Fatalf("legenda que é só nome próprio deveria passar: %v", err)
+	}
+}
+
 func TestValidateBody_rejectsMixedLanguageChapter(t *testing.T) {
 	// Recorte do cap. 26: o Riva ecoa o primeiro corte em inglês e traduz o resto.
 	source := mixedChapterSource()

@@ -71,6 +71,26 @@ func TestUnmaskHTMLTags_reinsertsDroppedHrefOpenings(t *testing.T) {
 	}
 }
 
+func TestUnmaskHTMLTags_reinsertsDroppedParagraphClose(t *testing.T) {
+	// Cap. 222 (INDEX N–Z): um corte de 12k chega com 401 tags e o Gemini
+	// omite um único </p>. Sem reinserir, ValidateBody vê fonte 401 vs 400.
+	source := `<p class="indexmain">Universe contest, <a class="nounder1" href="part.html#page_152">152</a></p>`
+	masked, tags := maskHTMLTags(source)
+	translated := strings.ReplaceAll(masked, "Universe contest,", "concurso Universe,")
+	for i, tag := range tags {
+		if strings.EqualFold(strings.TrimSpace(tag), "</p>") {
+			translated = strings.Replace(translated, tagPlaceholder(i), "", 1)
+		}
+	}
+	got := unmaskHTMLTags(translated, tags)
+	if err := ValidateBody(source, got); err != nil {
+		t.Fatalf("</p> dropado deveria voltar: %v\ngot=%s", err, got)
+	}
+	if !strings.HasSuffix(strings.TrimSpace(got), "</p>") {
+		t.Errorf("sem </p> no fim: %s", got)
+	}
+}
+
 func TestUnmaskHTMLTags_reinsertsEmptyAnchorPairs(t *testing.T) {
 	source := `<h2><a id="page_3"></a>CHAPTER 1</h2><p>Hello world, good morning everyone.</p>`
 	masked, tags := maskHTMLTags(source)
