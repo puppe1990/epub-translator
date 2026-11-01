@@ -180,7 +180,7 @@ func (s Service) translateChunk(ctx context.Context, targetLanguage, body string
 		}
 		out, err := s.Client.Translate(ctx, targetLanguage, content)
 		if err != nil {
-			if isContextOverflow(err) {
+			if isContextOverflow(err) || isProviderUnavailable(err) {
 				return "", err
 			}
 			lastErr = err
@@ -198,6 +198,11 @@ func (s Service) translateChunk(ctx context.Context, targetLanguage, body string
 func isContextOverflow(err error) bool {
 	msg := strings.ToLower(err.Error())
 	return strings.Contains(msg, "maximum context length") || strings.Contains(msg, "context length")
+}
+
+func isProviderUnavailable(err error) bool {
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "no upstreams") || strings.Contains(msg, "provedor respondeu 503")
 }
 
 // SystemPrompt monta as regras; o idioma-alvo entra por extenso para o modelo

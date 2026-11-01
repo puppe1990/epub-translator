@@ -331,6 +331,23 @@ func TestService_doesNotRetryContextLengthError(t *testing.T) {
 	}
 }
 
+func TestService_doesNotRetryOpenRouterNoUpstreams(t *testing.T) {
+	client := &errorClient{err: fmt.Errorf(`provedor respondeu 503: {"error":{"message":"Provider returned error","code":503,"metadata":{"raw":"{\"error\":\"no upstreams available\"}","provider_name":"Recursive"}}}`)}
+	_, err := (Service{Client: client, Attempts: 3}).TranslateBody(context.Background(), "pt-BR", "<p>Hello world.</p>")
+	if err == nil {
+		t.Fatal("esperava o 503 do provedor")
+	}
+	if client.calls != 1 {
+		t.Errorf("calls = %d, sem GPU no upstream não deve queimar as 3 tentativas", client.calls)
+	}
+	if strings.Contains(err.Error(), "tradução inválida") {
+		t.Errorf("503 não é tradução inválida: %v", err)
+	}
+	if !strings.Contains(err.Error(), "503") || !strings.Contains(err.Error(), "no upstreams") {
+		t.Errorf("erro precisa continuar sendo o 503: %v", err)
+	}
+}
+
 func TestService_failsAfterAttempts(t *testing.T) {
 	// Sempre com preâmbulo: inválido em todas as tentativas.
 	client := &fakeClient{responses: []string{"Aqui está:\n<p>Olá mundo.</p>"}}
