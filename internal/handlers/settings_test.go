@@ -83,6 +83,36 @@ func TestSettingsShow_nvidiaModelSelectPreservesSavedModel(t *testing.T) {
 	}
 }
 
+func TestSettingsShow_geminiModelSelectPreservesSavedModel(t *testing.T) {
+	for _, model := range []string{"gemini-3.5-flash-lite", "gemini-3.8-flash", "meu-modelo-gemini"} {
+		t.Run(model, func(t *testing.T) {
+			handler, s := newSettingsHandler(t)
+			if err := s.SaveProvider(models.Provider{Slug: "gemini", Model: model, APIKey: "AIza-secreta"}); err != nil {
+				t.Fatal(err)
+			}
+			rr := httptest.NewRecorder()
+			handler.Show(rr, httptest.NewRequest(http.MethodGet, "/settings", nil))
+			page := rr.Body.String()
+			start := strings.Index(page, `action="/settings/providers/gemini"`)
+			if start < 0 {
+				t.Fatal("formulário Gemini ausente")
+			}
+			form := strings.SplitN(page[start:], "</form>", 2)[0]
+			for _, want := range []string{"<select", `name="model"`, `id="model-gemini"`, `for="model-gemini"`, `value="` + model + `" selected`, "gemini-3.5-flash-lite", "gemini-3.5-live-translate-preview", "gemini-3.8-flash"} {
+				if !strings.Contains(form, want) {
+					t.Errorf("seletor Gemini sem %q", want)
+				}
+			}
+			if strings.Contains(form, `<input id="model-gemini"`) {
+				t.Error("Gemini precisa de select, não input livre")
+			}
+			if strings.Contains(form, "AIza-secreta") {
+				t.Error("chave exposta no formulário")
+			}
+		})
+	}
+}
+
 func TestSettingsSaveProvider_selectedNvidiaModelKeepsKeyAndResolves(t *testing.T) {
 	handler, s := newSettingsHandler(t)
 	if err := s.SaveProvider(models.Provider{Slug: "nvidia", APIKey: "nvapi-existente"}); err != nil {

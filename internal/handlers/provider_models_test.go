@@ -46,6 +46,40 @@ func TestProviderModelOptions_nvidiaKeepsSavedModelOutsideCatalog(t *testing.T) 
 	}
 }
 
+func TestProviderModelOptions_geminiListsTranslationCandidates(t *testing.T) {
+	want := []string{
+		"gemini-3.5-flash-lite",
+		"gemini-3.5-flash",
+		"gemini-3.5-live-translate-preview",
+		"gemini-3.8-flash",
+		"gemini-3.1-flash-lite",
+		"gemini-2.5-flash",
+		"gemini-2.5-pro",
+	}
+	got := providerModelOptions("gemini", "gemini-3.5-flash")
+	if !slices.Equal(got, want) {
+		t.Fatalf("catálogo Gemini = %v, want %v", got, want)
+	}
+	for _, excluded := range []string{
+		"gemini-2.5-flash-image",
+		"gemini-2.5-flash-preview-tts",
+		"gemini-embedding-001",
+		"models/gemini-3.5-flash-lite",
+	} {
+		if slices.Contains(got, excluded) {
+			t.Errorf("lista de tradução não deve oferecer %s", excluded)
+		}
+	}
+}
+
+func TestProviderModelOptions_geminiKeepsSavedModelOutsideCatalog(t *testing.T) {
+	saved := "gemini-3.6-flash"
+	got := providerModelOptions("gemini", saved)
+	if got[0] != saved || !slices.Contains(got, "gemini-3.5-flash-lite") {
+		t.Fatalf("modelo salvo precisa continuar selecionável sem substituir a lista: %v", got)
+	}
+}
+
 type modelCatalogFixture struct{ fail bool }
 
 func (f modelCatalogFixture) List(_ context.Context, slug, _ string) ([]string, error) {

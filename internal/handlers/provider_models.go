@@ -53,6 +53,16 @@ func providerModelOptions(slug, selected string) []string {
 			"nvidia/nemotron-3.5-lightning-30b-a3b",
 			"z-ai/glm-5.3-flash",
 		}
+	case "gemini":
+		options = []string{
+			"gemini-3.5-flash-lite",
+			"gemini-3.5-flash",
+			"gemini-3.5-live-translate-preview",
+			"gemini-3.8-flash",
+			"gemini-3.1-flash-lite",
+			"gemini-2.5-flash",
+			"gemini-2.5-pro",
+		}
 	default:
 		return nil
 	}
