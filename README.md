@@ -6,7 +6,7 @@ Envie um EPUB, acompanhe a tradução **capítulo a capítulo** e baixe o arquiv
 - `GET /books/{id}` — progresso ao vivo (**SSE** morfa `#book-progress` e `#chapter-list`), tabela de capítulos com status/tentativas/erro
 - `POST /books/{id}/retry` — roda a fila (pendentes + falhos)
 - `POST /books/{id}/pause` — cancela a chamada atual e pausa o livro, preservando os capítulos concluídos
-- `POST /books/{id}/chapters/{cid}/retry` — devolve um capítulo falho à fila e roda
+- `POST /books/{id}/chapters/{cid}/retry` — devolve o capítulo falho à fila e traduz **ele** em seguida (fura a ordem da fila)
 - `GET /books/{id}/download` — reconstrói o EPUB com os capítulos já traduzidos (o que faltar sai no idioma original)
 - `GET|POST /settings` — endpoint OpenAI-compatível (base URL, modelo e chave); `POST /settings/test` valida na hora
 

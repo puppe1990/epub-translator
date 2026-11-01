@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/puppe1990/epub-translator/internal/models"
 	"github.com/puppe1990/epub-translator/internal/store"
@@ -110,6 +111,54 @@ func TestRunner_refusesSecondRunWhileBusy(t *testing.T) {
 	book, _ := s.FindBook(bookID)
 	if book.Status != "done" {
 		t.Errorf("book = %+v", book)
+	}
+}
+
+type holdingOrderTranslator struct {
+	started chan struct{}
+	release chan struct{}
+	mu      sync.Mutex
+	order   []string
+}
+
+func (h *holdingOrderTranslator) TranslateBody(ctx context.Context, _, body string) (string, error) {
+	h.mu.Lock()
+	h.order = append(h.order, body)
+	h.mu.Unlock()
+	h.started <- struct{}{}
+	select {
+	case <-ctx.Done():
+		return "", ctx.Err()
+	case <-h.release:
+		return strings.ReplaceAll(body, "Hello", "Olá"), nil
+	}
+}
+
+func TestRunner_preferredChapterRunsNextDuringActiveRun(t *testing.T) {
+	s := newTestStore(t)
+	bookID := seedBook(t, s)
+	chapters, _ := s.ListChapters(bookID)
+	translator := &holdingOrderTranslator{started: make(chan struct{}, 10), release: make(chan struct{})}
+	runner := NewRunner(s, translator)
+	if !runner.Start(bookID) {
+		t.Fatal("Start")
+	}
+	select {
+	case <-translator.started:
+	case <-time.After(2 * time.Second):
+		t.Fatal("capítulo atual não começou")
+	}
+	if runner.StartPreferred(bookID, chapters[2].ID) {
+		t.Fatal("StartPreferred deveria só furar a fila com o livro já rodando")
+	}
+	close(translator.release)
+	runner.Wait(bookID)
+
+	translator.mu.Lock()
+	order := append([]string{}, translator.order...)
+	translator.mu.Unlock()
+	if len(order) < 2 || order[1] != "<p>Hello three</p>" {
+		t.Fatalf("depois do capítulo atual a fila foi %v, queria o capítulo 3 em seguida", order)
 	}
 }
 

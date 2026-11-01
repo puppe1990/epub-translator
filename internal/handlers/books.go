@@ -236,7 +236,7 @@ func (h *BooksHandler) RetryChapter(w http.ResponseWriter, r *http.Request) {
 		httpx.ServerError(w, err, h.cfg)
 		return
 	}
-	h.runner.Start(bookID)
+	h.runner.StartPreferred(bookID, chapterID)
 	flash.Set(w, "notice", fmt.Sprintf("Capítulo %d marcado para retry.", chapter.Position), h.cfg.CookieSecure())
 	http.Redirect(w, r, fmt.Sprintf("/books/%d", bookID), http.StatusSeeOther)
 }

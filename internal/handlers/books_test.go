@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/puppe1990/amarra-cais/pkg/cais"
@@ -222,6 +223,57 @@ func TestBooksShow_rendersProgressChaptersAndStream(t *testing.T) {
 	handler.Show(missing, httptest.NewRequest(http.MethodGet, "/books/99", nil), 99)
 	if missing.Code != http.StatusNotFound {
 		t.Errorf("livro inexistente: status = %d", missing.Code)
+	}
+}
+
+type orderTranslator struct {
+	mu    sync.Mutex
+	order []string
+}
+
+func (o *orderTranslator) TranslateBody(_ context.Context, _, body string) (string, error) {
+	o.mu.Lock()
+	o.order = append(o.order, body)
+	o.mu.Unlock()
+	return strings.NewReplacer("Hello", "Olá").Replace(body), nil
+}
+
+func TestBooksRetryChapter_translatesClickedChapterBeforeEarlierPending(t *testing.T) {
+	s := setupTestStore(t)
+	translator := &orderTranslator{}
+	runner := pipeline.NewRunner(s, translator)
+	handler := NewBooksHandler(setupTestViews(t), s, runner, testSite(), nil, cais.Config{}, t.TempDir())
+
+	bookID, err := s.CreateBook(models.Book{Title: "Livro", TargetLanguage: "pt-BR"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.CreateChapters(bookID, []models.Chapter{
+		{Position: 1, DocPath: "ch01.xhtml", Title: "Um", SourceText: "<p>Hello one</p>"},
+		{Position: 2, DocPath: "ch02.xhtml", Title: "Dois", SourceText: "<p>Hello two</p>"},
+		{Position: 3, DocPath: "ch03.xhtml", Title: "Três", SourceText: "<p>Hello three</p>"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	chapters, _ := s.ListChapters(bookID)
+	if err := s.SetChapterDone(chapters[0].ID, "<p>Olá one</p>"); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.SetChapterFailed(chapters[2].ID, "429"); err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/books/1/chapters/3/retry", nil)
+	req.SetPathValue("id", strconv.FormatInt(bookID, 10))
+	req.SetPathValue("chapterID", strconv.FormatInt(chapters[2].ID, 10))
+	handler.RetryChapter(httptest.NewRecorder(), req)
+	runner.Wait(bookID)
+
+	translator.mu.Lock()
+	order := append([]string{}, translator.order...)
+	translator.mu.Unlock()
+	if len(order) == 0 || order[0] != "<p>Hello three</p>" {
+		t.Fatalf("Retentar da linha traduziu %v, queria o capítulo 3 primeiro", order)
 	}
 }
 
