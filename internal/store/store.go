@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/puppe1990/amarra-cais/pkg/cais/devlog"
 	"github.com/puppe1990/amarra-cais/pkg/cais/session"
@@ -25,6 +26,8 @@ type Store interface {
 	PendingChapters(bookID int64) ([]models.Chapter, error)
 	ChapterTranslations(bookID int64) (map[string]string, error)
 	SetChapterRunning(id int64) error
+	StartChapterExecution(id int64, details models.TranslationDetails, started time.Time) error
+	FinishChapterExecution(id int64, finished time.Time, durationMS int64) error
 	SetChapterDone(id int64, translated string) error
 	SetChapterFailed(id int64, message string) error
 	ResetChapter(id int64) error

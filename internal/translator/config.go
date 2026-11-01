@@ -8,7 +8,10 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
+	"github.com/puppe1990/epub-translator/internal/models"
+	"github.com/puppe1990/epub-translator/internal/pipeline"
 	"github.com/puppe1990/epub-translator/internal/store"
 	"github.com/puppe1990/epub-translator/internal/translate"
 )
@@ -23,9 +26,10 @@ const (
 
 // Config é o endpoint OpenAI-compatível efetivo.
 type Config struct {
-	BaseURL string
-	APIKey  string
-	Model   string
+	Provider string
+	BaseURL  string
+	APIKey   string
+	Model    string
 }
 
 // Resolve aplica a precedência: perfil ativo em /settings > configuração
@@ -45,6 +49,7 @@ func Resolve(s store.Store) (Config, error) {
 		APIKey:  firstNonEmpty(settings[KeyAPIKey], os.Getenv("TRANSLATE_API_KEY"), os.Getenv("OPENAI_API_KEY")),
 		Model:   firstNonEmpty(settings[KeyModel], os.Getenv("TRANSLATE_MODEL"), "gpt-4.1-mini"),
 	}
+	config.Provider = providerSlug(config.BaseURL)
 	if config.APIKey == "" {
 		return config, fmt.Errorf("nenhuma chave de API configurada — salve e ative um provedor em /settings ou defina TRANSLATE_API_KEY")
 	}
@@ -67,10 +72,20 @@ func providerConfig(s store.Store, slug string) (Config, error) {
 		return Config{}, fmt.Errorf("%s está incompleto — preencha Base URL e modelo em /settings", preset.Name)
 	}
 	return Config{
-		BaseURL: baseURL,
-		APIKey:  provider.APIKey,
-		Model:   model,
+		Provider: slug,
+		BaseURL:  baseURL,
+		APIKey:   provider.APIKey,
+		Model:    model,
 	}, nil
+}
+
+func providerSlug(baseURL string) string {
+	for _, preset := range Presets {
+		if preset.BaseURL != "" && strings.TrimRight(baseURL, "/") == preset.BaseURL {
+			return preset.Slug
+		}
+	}
+	return "custom"
 }
 
 func firstNonEmpty(values ...string) string {
@@ -89,9 +104,19 @@ type Configured struct {
 }
 
 func (c Configured) TranslateBody(ctx context.Context, targetLanguage, body string) (string, error) {
-	config, err := Resolve(c.Store)
+	prepared, _, err := c.Prepare()
 	if err != nil {
 		return "", err
+	}
+	return prepared.TranslateBody(ctx, targetLanguage, body)
+}
+
+// Resolve once: recorded metadata and the HTTP call must use the same snapshot,
+// even when settings change while this chapter is in flight.
+func (c Configured) Prepare() (pipeline.Translator, models.TranslationDetails, error) {
+	config, err := Resolve(c.Store)
+	if err != nil {
+		return nil, models.TranslationDetails{}, err
 	}
 	service := translate.Service{
 		Client: translate.Client{
@@ -101,5 +126,5 @@ func (c Configured) TranslateBody(ctx context.Context, targetLanguage, body stri
 		},
 		Attempts: 3,
 	}
-	return service.TranslateBody(ctx, targetLanguage, body)
+	return service, models.TranslationDetails{Provider: config.Provider, Model: config.Model}, nil
 }

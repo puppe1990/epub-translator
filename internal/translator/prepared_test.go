@@ -1,0 +1,35 @@
+package translator
+
+import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	"github.com/puppe1990/epub-translator/internal/models"
+)
+
+func TestPreparedTranslationKeepsTheRecordedModelWhenSettingsChange(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var request struct{ Model string }
+		_ = json.NewDecoder(r.Body).Decode(&request)
+		if request.Model != "model-original" || r.Header.Get("Authorization") != "Bearer original-test-key" {
+			t.Error("requisição usou configuração diferente da registrada")
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"<p>Olá mundo.</p>"}}]}`))
+	}))
+	defer server.Close()
+	s := newTestStore(t)
+	_ = s.SaveProvider(models.Provider{Slug: "custom", BaseURL: server.URL, Model: "model-original", APIKey: "original-test-key"})
+	_ = s.SetSetting(KeyActiveProvider, "custom")
+	prepared, details, err := (Configured{Store: s}).Prepare()
+	if err != nil || details.Provider != "custom" || details.Model != "model-original" {
+		t.Fatalf("configuração preparada incorreta: %+v, %v", details, err)
+	}
+	_ = s.SaveProvider(models.Provider{Slug: "custom", BaseURL: server.URL, Model: "model-novo", APIKey: "different-test-key"})
+	if _, err := prepared.TranslateBody(context.Background(), "pt-BR", "<p>Hello world.</p>"); err != nil {
+		t.Fatal(err)
+	}
+}

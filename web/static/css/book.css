@@ -141,10 +141,12 @@
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 10px;
-  overflow: hidden;
+  overflow: auto;
 }
 .chapter-table {
   width: 100%;
+  min-width: 850px;
+  table-layout: fixed;
   border-collapse: collapse;
   text-align: left;
   font-size: 12px;
@@ -180,8 +182,42 @@
   width: 130px;
 }
 .chapter-action {
-  width: 90px;
+  width: 100px;
   text-align: right;
+}
+.chapter-duration {
+  width: 110px;
+  color: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.chapter-execution {
+  width: 210px;
+  overflow-wrap: anywhere;
+}
+.chapter-provider {
+  display: block;
+  font-size: 11px;
+  font-weight: 550;
+}
+.chapter-model {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 10px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.chapter-action .text-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.chapter-action .text-button > span {
+  margin-left: 0;
 }
 .chapter-running {
   background: rgb(var(--amarra-tide) / 0.3);

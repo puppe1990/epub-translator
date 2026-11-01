@@ -98,7 +98,8 @@ func scanBook(row rowScanner) (models.Book, error) {
 
 func (s *SQLiteStore) ListChapters(bookID int64) ([]models.Chapter, error) {
 	rows, err := s.db.Query(
-		`SELECT id, book_id, position, doc_path, title, status, attempts, error
+		`SELECT id, book_id, position, doc_path, title, status, attempts, error,
+                 provider, model, started_at, finished_at, duration_ms
 		 FROM chapters WHERE book_id = ? ORDER BY position`, bookID)
 	if err != nil {
 		return nil, fmt.Errorf("listar capítulos: %w", err)
@@ -109,7 +110,8 @@ func (s *SQLiteStore) ListChapters(bookID int64) ([]models.Chapter, error) {
 	for rows.Next() {
 		var chapter models.Chapter
 		if err := rows.Scan(&chapter.ID, &chapter.BookID, &chapter.Position, &chapter.DocPath,
-			&chapter.Title, &chapter.Status, &chapter.Attempts, &chapter.Error); err != nil {
+			&chapter.Title, &chapter.Status, &chapter.Attempts, &chapter.Error,
+			&chapter.Provider, &chapter.Model, &chapter.StartedAt, &chapter.FinishedAt, &chapter.DurationMS); err != nil {
 			return nil, fmt.Errorf("ler capítulo: %w", err)
 		}
 		chapters = append(chapters, chapter)
@@ -120,10 +122,12 @@ func (s *SQLiteStore) ListChapters(bookID int64) ([]models.Chapter, error) {
 func (s *SQLiteStore) FindChapter(id int64) (models.Chapter, error) {
 	var chapter models.Chapter
 	err := s.db.QueryRow(
-		`SELECT id, book_id, position, doc_path, title, source_text, translated_text, status, attempts, error
+		`SELECT id, book_id, position, doc_path, title, source_text, translated_text, status, attempts, error,
+                 provider, model, started_at, finished_at, duration_ms
 		 FROM chapters WHERE id = ?`, id,
 	).Scan(&chapter.ID, &chapter.BookID, &chapter.Position, &chapter.DocPath, &chapter.Title,
-		&chapter.SourceText, &chapter.TranslatedText, &chapter.Status, &chapter.Attempts, &chapter.Error)
+		&chapter.SourceText, &chapter.TranslatedText, &chapter.Status, &chapter.Attempts, &chapter.Error,
+		&chapter.Provider, &chapter.Model, &chapter.StartedAt, &chapter.FinishedAt, &chapter.DurationMS)
 	if errors.Is(err, sql.ErrNoRows) {
 		return models.Chapter{}, fmt.Errorf("capítulo %d não existe", id)
 	}
@@ -159,7 +163,8 @@ func (s *SQLiteStore) ChapterTranslations(bookID int64) (map[string]string, erro
 // em ordem — é a fila do runner e o alvo do botão de retry.
 func (s *SQLiteStore) PendingChapters(bookID int64) ([]models.Chapter, error) {
 	rows, err := s.db.Query(
-		`SELECT id, book_id, position, doc_path, title, source_text, status, attempts, error
+		`SELECT id, book_id, position, doc_path, title, source_text, status, attempts, error,
+                 provider, model, started_at, finished_at, duration_ms
 		 FROM chapters WHERE book_id = ? AND status IN ('pending', 'failed') ORDER BY position`, bookID)
 	if err != nil {
 		return nil, fmt.Errorf("filtrar capítulos: %w", err)
@@ -170,7 +175,8 @@ func (s *SQLiteStore) PendingChapters(bookID int64) ([]models.Chapter, error) {
 	for rows.Next() {
 		var chapter models.Chapter
 		if err := rows.Scan(&chapter.ID, &chapter.BookID, &chapter.Position, &chapter.DocPath,
-			&chapter.Title, &chapter.SourceText, &chapter.Status, &chapter.Attempts, &chapter.Error); err != nil {
+			&chapter.Title, &chapter.SourceText, &chapter.Status, &chapter.Attempts, &chapter.Error,
+			&chapter.Provider, &chapter.Model, &chapter.StartedAt, &chapter.FinishedAt, &chapter.DurationMS); err != nil {
 			return nil, fmt.Errorf("ler capítulo: %w", err)
 		}
 		chapters = append(chapters, chapter)

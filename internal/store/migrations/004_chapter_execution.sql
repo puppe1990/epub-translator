@@ -1,0 +1,13 @@
+-- up
+ALTER TABLE chapters ADD COLUMN provider TEXT NOT NULL DEFAULT '';
+ALTER TABLE chapters ADD COLUMN model TEXT NOT NULL DEFAULT '';
+ALTER TABLE chapters ADD COLUMN started_at TEXT NOT NULL DEFAULT '';
+ALTER TABLE chapters ADD COLUMN finished_at TEXT NOT NULL DEFAULT '';
+ALTER TABLE chapters ADD COLUMN duration_ms INTEGER NOT NULL DEFAULT 0;
+
+-- down
+ALTER TABLE chapters DROP COLUMN duration_ms;
+ALTER TABLE chapters DROP COLUMN finished_at;
+ALTER TABLE chapters DROP COLUMN started_at;
+ALTER TABLE chapters DROP COLUMN model;
+ALTER TABLE chapters DROP COLUMN provider;

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"html/template"
 	"strings"
+	"time"
 
 	"github.com/puppe1990/epub-translator/internal/models"
 )
@@ -104,13 +105,15 @@ var fragmentsTemplate = template.Must(template.New("fragments").Parse(`
 {{ define "chapter-list" }}
 <table class="chapter-table">
   <caption class="sr-only">Capítulos e estado da tradução</caption>
-  <thead><tr><th scope="col" class="chapter-number">Nº</th><th scope="col">Capítulo</th><th scope="col">Status</th><th scope="col" class="chapter-attempts">Falhas</th><th scope="col"><span class="sr-only">Ações</span></th></tr></thead>
+  <thead><tr><th scope="col" class="chapter-number">Nº</th><th scope="col">Capítulo</th><th scope="col" class="chapter-status">Status</th><th scope="col" class="chapter-duration">Tempo</th><th scope="col" class="chapter-execution">Provedor / modelo</th><th scope="col" class="chapter-attempts">Falhas</th><th scope="col" class="chapter-action"><span class="sr-only">Ações</span></th></tr></thead>
   <tbody>
     {{ range .Chapters }}
     <tr class="chapter-row chapter-{{ .Status }}">
       <td class="chapter-number">{{ printf "%02d" .Position }}</td>
       <td class="chapter-title"><span>{{ .Title }}</span>{{ if .Error }}<details class="chapter-error"><summary>Ver erro</summary><p>{{ .Error }}</p></details>{{ end }}</td>
       <td class="chapter-status"><span class="status-chip {{ .ChipClass }}">{{ .StatusLabel }}</span></td>
+      <td class="chapter-duration"><span class="sr-only">Tempo: </span><span id="chapter-time-{{ .ID }}" {{ if eq .DurationLabel "—" }}title="Não registrado"{{ end }}>{{ .DurationLabel }}</span></td>
+      <td class="chapter-execution"><span class="chapter-provider" {{ if eq .ProviderLabel "—" }}title="Não registrado"{{ end }}>{{ .ProviderLabel }}</span><code class="chapter-model" title="{{ if .Model }}{{ .Model }}{{ else }}Não registrado{{ end }}">{{ if .Model }}{{ .Model }}{{ else }}—{{ end }}</code></td>
       <td class="chapter-attempts">{{ .Attempts }}</td>
       <td class="chapter-action">{{ if eq .Status "failed" }}<form action="/books/{{ $.BookID }}/chapters/{{ .ID }}/retry" method="post"><button type="submit" class="text-button" aria-label="Retentar capítulo {{ .Position }}">Retentar <span>↻</span></button></form>{{ else if eq .Status "done" }}<span class="chapter-check" aria-label="Traduzido">✓</span>{{ end }}</td>
     </tr>
@@ -122,18 +125,25 @@ var fragmentsTemplate = template.Must(template.New("fragments").Parse(`
 
 // chapterRow é a linha da tabela de capítulos na página do livro.
 type chapterRow struct {
-	ID          int64
-	BookID      int64
-	Position    int
-	Title       string
-	Status      string
-	StatusLabel string
-	ChipClass   string
-	Attempts    int
-	Error       string
+	ID            int64
+	BookID        int64
+	Position      int
+	Title         string
+	Status        string
+	StatusLabel   string
+	ChipClass     string
+	Attempts      int
+	Error         string
+	ProviderLabel string
+	Model         string
+	DurationLabel string
 }
 
 func chapterRows(chapters []models.Chapter) []chapterRow {
+	return chapterRowsAt(chapters, time.Now())
+}
+
+func chapterRowsAt(chapters []models.Chapter, now time.Time) []chapterRow {
 	rows := make([]chapterRow, 0, len(chapters))
 	for _, chapter := range chapters {
 		rows = append(rows, chapterRow{
@@ -141,6 +151,8 @@ func chapterRows(chapters []models.Chapter) []chapterRow {
 			Status: chapter.Status, StatusLabel: chapterStatusLabel(chapter.Status),
 			ChipClass: statusChipClass(chapter.Status),
 			Attempts:  chapter.Attempts, Error: chapter.Error,
+			ProviderLabel: chapterProviderLabel(chapter.Provider), Model: chapter.Model,
+			DurationLabel: chapterDurationLabel(chapter, now),
 		})
 	}
 	return rows

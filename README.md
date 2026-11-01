@@ -19,6 +19,8 @@ Envie um EPUB, acompanhe a tradução **capítulo a capítulo** e baixe o arquiv
 
 Na página do livro, **Pausar** interrompe a requisição atual e salva o estado **Pausado**. O capítulo interrompido volta à fila sem contar como falha. **Retomar tradução** continua pelos pendentes e falhos; os concluídos permanecem intactos. A pausa sobrevive ao reinício do servidor, e os controles acompanham o estado ao vivo por SSE.
 
+A lista mostra **tempo**, **provedor** e **modelo** da última execução de cada capítulo. A configuração é capturada antes da chamada, e a duração inclui as retentativas automáticas daquela execução. O tempo em andamento atualiza por SSE; sucessos, falhas e pausas preservam a duração final. Ao retentar, esses campos passam a representar a nova execução. Traduções anteriores ao registro mostram “—”; seus dados não são inferidos pela configuração atual.
+
 ## Provedores (perfis com chave)
 
 A página **/settings** mantém um **perfil por provedor**, cada um com a própria chave salva (tabela `providers`, chave mascarada na tela):

@@ -308,6 +308,7 @@ progress::-moz-progress-bar {
   .chapter-table,
   .chapter-table tbody {
     display: block;
+    min-width: 0;
   }
   .chapter-row {
     display: grid;
@@ -337,7 +338,17 @@ progress::-moz-progress-bar {
   }
   .chapter-action {
     grid-column: 3;
-    grid-row: 1 / 3;
+    grid-row: 1;
+  }
+  .chapter-table .chapter-duration {
+    grid-column: 3;
+    grid-row: 2;
+    text-align: right;
+  }
+  .chapter-table .chapter-execution {
+    grid-column: 2 / 4;
+    grid-row: 3;
+    padding-top: 2px;
   }
   .chapter-title {
     font-size: 12px;

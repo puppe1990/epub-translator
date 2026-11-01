@@ -6,8 +6,8 @@ package pipeline
 import (
 	"context"
 	"sync"
+	"time"
 
-	"github.com/puppe1990/epub-translator/internal/models"
 	"github.com/puppe1990/epub-translator/internal/store"
 )
 
@@ -21,6 +21,7 @@ type Translator interface {
 type Runner struct {
 	store      store.Store
 	translator Translator
+	now        func() time.Time
 
 	mu      sync.Mutex
 	running map[int64]*bookRun
@@ -33,7 +34,7 @@ type bookRun struct {
 }
 
 func NewRunner(s store.Store, translator Translator) *Runner {
-	return &Runner{store: s, translator: translator, running: map[int64]*bookRun{}}
+	return &Runner{store: s, translator: translator, now: time.Now, running: map[int64]*bookRun{}}
 }
 
 // Start dispara a tradução dos capítulos pendentes/falhos. Devolve false se o
@@ -118,17 +119,6 @@ func (r *Runner) pauseIfCancelled(ctx context.Context, bookID int64, job *bookRu
 	return true
 }
 
-func (r *Runner) translateChapter(ctx context.Context, language string, chapter models.Chapter) {
-	_ = r.store.SetChapterRunning(chapter.ID)
-	out, err := r.translator.TranslateBody(ctx, language, chapter.SourceText)
-	if err != nil {
-		if ctx.Err() == nil {
-			_ = r.store.SetChapterFailed(chapter.ID, err.Error())
-		}
-		return
-	}
-	_ = r.store.SetChapterDone(chapter.ID, out)
-}
 func (r *Runner) finish(bookID int64) {
 	book, err := r.store.FindBook(bookID)
 	if err != nil {

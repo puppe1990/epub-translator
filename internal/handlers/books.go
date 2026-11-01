@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -284,7 +285,8 @@ func downloadFilename(book models.Book) string {
 // página não precisa recarregar nem fazer polling próprio.
 func (h *BooksHandler) Events(w http.ResponseWriter, r *http.Request, id int64) {
 	stream.RelaySSE(w)
-	var lastProgress, lastList, lastActions string
+	var lastProgress, lastActions string
+	var lastChapters []models.Chapter
 	ticker := time.NewTicker(1500 * time.Millisecond)
 	defer ticker.Stop()
 
@@ -309,9 +311,16 @@ func (h *BooksHandler) Events(w http.ResponseWriter, r *http.Request, id int64) 
 				_ = stream.WriteOp(w, stream.Op{Kind: "morph", Target: "book-progress", HTML: progress})
 				lastProgress = progress
 			}
-			if list != lastList {
+			if !slices.Equal(chapters, lastChapters) {
 				_ = stream.WriteOp(w, stream.Op{Kind: "morph", Target: "chapter-list", HTML: list})
-				lastList = list
+				lastChapters = chapters
+			}
+			// Only the active clock changes each tick; avoid retransmitting the
+			// entire chapter table merely to advance its elapsed time.
+			for _, chapter := range chapters {
+				if chapter.Status == "running" && chapter.StartedAt != "" {
+					_ = stream.WriteOp(w, stream.Op{Kind: "morph", Target: fmt.Sprintf("chapter-time-%d", chapter.ID), HTML: chapterDurationLabel(chapter, time.Now())})
+				}
 			}
 			actions, err := RenderBookActions(book, meta.ForRequest(h.site, r).CSRFToken)
 			if err == nil && actions != lastActions {

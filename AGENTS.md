@@ -17,6 +17,7 @@ App de upload: recebe um EPUB, traduz **documento XHTML por documento** (cada um
 | SSE           | `internal/app/app.go`  | `WriteTimeout: 0` no servidor — stream de progresso é long-lived; mudar isso derruba o morph a cada 30s                                                                                                                                                                                  |
 
 - Upload grava o EPUB em `data/books/book-*.epub` e aponta `books.source_path`; nunca sirva esse caminho direto — download é sempre reconstruído.
+- **Metadados da execução**: migração `004_chapter_execution.sql` salva `provider`, `model`, `started_at`, `finished_at` e `duration_ms` por capítulo. `Configured.Prepare` congela a mesma configuração usada pela requisição. Dados representam a última execução, sem inventar histórico legado; o relógio ativo atualiza só `#chapter-time-{id}` por SSE.
 - **Pausa**: `Runner.Pause` cancela o contexto e espera o término da execução; `PauseBook` devolve apenas o capítulo em execução à fila e persiste `books.status=paused`, sem contar falha. Os controles (`#book-actions`) acompanham a pausa por SSE. O cliente vendorizado preserva `MessageEvent.lastEventId` como alvo; `tests/stream.test.cjs` protege esse contrato (rodado por `make ci`).
 - Erros do provedor viram `chapters.error` (texto na tabela) e **não** derrubam os outros capítulos; o livro fica `failed` se algum capítulo falhou.
 - O scaffold blank não registra `POST /locale`; o `locale-toggle` foi removido do layout (UI pt-only, idioma de destino é por upload).
