@@ -1,0 +1,6 @@
+{{ define "content" }}
+<section class="book-page">
+  <a href="/books/{{ .Book.ID }}" class="back-link">← Voltar ao livro</a>
+  {{ .SpreadHTML }}
+</section>
+{{ end }}

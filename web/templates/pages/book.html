@@ -14,5 +14,16 @@
   <section class="chapters-section" aria-labelledby="chapters-heading"><header class="section-heading"><h2 id="chapters-heading">Capítulos <span>{{ .Book.TotalChapters }}</span></h2><span class="live-label"><span class="status-dot"></span> Progresso ao vivo</span></header><div id="chapter-list" class="chapter-list">{{ .ChapterListHTML }}</div></section>
   <p class="download-note">Caracteres é o tamanho do XHTML original. Tempo, provedor e modelo são da última execução de cada capítulo. “—” indica informação não registrada nas traduções antigas.</p>
   <div data-amarra-stream="/books/{{ .Book.ID }}/events" hidden></div>
+  <dialog id="chapter-preview-dialog" class="chapter-preview-dialog" aria-labelledby="chapter-preview-title">
+    <div class="preview-dialog-frame">
+      <div class="preview-dialog-bar">
+        <p id="chapter-preview-title" class="eyebrow">COMPARAR TRADUÇÃO</p>
+        <button type="button" class="preview-close" data-chapter-preview-close aria-label="Fechar preview">Fechar</button>
+      </div>
+      <div id="chapter-preview-body" class="preview-dialog-body">
+        <p class="preview-empty">Escolha um capítulo para comparar o original e a tradução.</p>
+      </div>
+    </div>
+  </dialog>
 </section>
 {{ end }}

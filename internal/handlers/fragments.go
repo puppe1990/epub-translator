@@ -116,7 +116,7 @@ var fragmentsTemplate = template.Must(template.New("fragments").Parse(`
       <td class="chapter-duration"><span class="sr-only">Tempo: </span><span id="chapter-time-{{ .ID }}" {{ if eq .DurationLabel "—" }}title="Não registrado"{{ end }}>{{ .DurationLabel }}</span></td>
       <td class="chapter-execution"><span class="chapter-provider" {{ if eq .ProviderLabel "—" }}title="Não registrado"{{ end }}>{{ .ProviderLabel }}</span><code class="chapter-model" title="{{ if .Model }}{{ .Model }}{{ else }}Não registrado{{ end }}">{{ if .Model }}{{ .Model }}{{ else }}—{{ end }}</code></td>
       <td class="chapter-attempts">{{ .Attempts }}</td>
-      <td class="chapter-action">{{ if eq .Status "failed" }}<form action="/books/{{ $.BookID }}/chapters/{{ .ID }}/retry" method="post"><button type="submit" class="text-button" aria-label="Retentar capítulo {{ .Position }}">Retentar <span>↻</span></button></form>{{ else if eq .Status "done" }}<span class="chapter-check" aria-label="Traduzido">✓</span>{{ end }}</td>
+      <td class="chapter-action"><div class="chapter-tools"><a class="text-button" href="/books/{{ $.BookID }}/chapters/{{ .ID }}/preview" data-amarra-skip data-chapter-preview aria-label="Preview do capítulo {{ .Position }}">Preview</a>{{ if eq .Status "failed" }}<form action="/books/{{ $.BookID }}/chapters/{{ .ID }}/retry" method="post"><button type="submit" class="text-button" aria-label="Retentar capítulo {{ .Position }}">Retentar <span>↻</span></button></form>{{ else if eq .Status "done" }}<span class="chapter-check" aria-label="Traduzido">✓</span>{{ end }}</div></td>
     </tr>
     {{ end }}
   </tbody>

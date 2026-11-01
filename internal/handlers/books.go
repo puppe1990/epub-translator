@@ -10,7 +10,6 @@ import (
 	"os"
 	"regexp"
 	"slices"
-	"strconv"
 	"strings"
 	"time"
 
@@ -221,9 +220,8 @@ func (h *BooksHandler) Retry(w http.ResponseWriter, r *http.Request, id int64) {
 }
 
 func (h *BooksHandler) RetryChapter(w http.ResponseWriter, r *http.Request) {
-	bookID, errBook := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	chapterID, errChapter := strconv.ParseInt(r.PathValue("chapterID"), 10, 64)
-	if errBook != nil || errChapter != nil || bookID <= 0 || chapterID <= 0 {
+	bookID, chapterID, ok := bookChapterIDs(r)
+	if !ok {
 		http.NotFound(w, r)
 		return
 	}

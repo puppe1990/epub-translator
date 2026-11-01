@@ -8,7 +8,7 @@ CSS_OUT := web/static/css/styles.css
 
 test:
 	go test ./... -race -count=1
-	node --test tests/stream.test.cjs
+	node --test tests/*.cjs
 
 lint:
 	golangci-lint run ./...

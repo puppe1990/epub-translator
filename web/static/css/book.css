@@ -145,7 +145,7 @@
 }
 .chapter-table {
   width: 100%;
-  min-width: 940px;
+  min-width: 980px;
   table-layout: fixed;
   border-collapse: collapse;
   text-align: left;
@@ -190,8 +190,14 @@
   width: 130px;
 }
 .chapter-action {
-  width: 100px;
+  width: 148px;
   text-align: right;
+}
+.chapter-tools {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
 }
 .chapter-duration {
   width: 110px;
@@ -248,4 +254,158 @@
   border: 1px solid #c36e5830;
   border-radius: 5px;
   overflow-wrap: anywhere;
+}
+.chapter-preview-dialog {
+  width: min(1120px, calc(100vw - 28px));
+  max-width: none;
+  height: min(840px, calc(100dvh - 36px));
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+.chapter-preview-dialog::backdrop {
+  background: #141d1bcc;
+  backdrop-filter: blur(10px);
+}
+.preview-dialog-frame {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #1b2722;
+  border: 1px solid #31584066;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 28px 80px #0b161266;
+}
+.preview-dialog-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 22px;
+  background: #24362d;
+  color: #f2edda;
+  border-bottom: 1px solid #31584088;
+}
+.preview-dialog-bar .eyebrow {
+  margin: 0;
+  color: #c5d4c8;
+}
+.preview-close {
+  appearance: none;
+  border: 1px solid #f2edda33;
+  background: transparent;
+  color: #f2edda;
+  font: inherit;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 7px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.preview-close:hover,
+.preview-close:focus-visible {
+  background: #f2edda;
+  color: #1b2722;
+}
+.preview-dialog-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  background: #d7c7a4;
+}
+.chapter-preview-spread {
+  padding: 22px 22px 28px;
+}
+.preview-spread-heading {
+  margin: 0 8px 18px;
+}
+.preview-spread-heading h2 {
+  font-family: Georgia, "Iowan Old Style", serif;
+  font-size: 28px;
+  letter-spacing: -0.6px;
+  margin-top: 6px;
+  color: #1c1914;
+}
+.preview-pages {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 520px;
+  background: #f3ead6;
+  border: 1px solid #cbbfa4;
+  box-shadow: 0 18px 40px #18322522;
+}
+.preview-page {
+  min-width: 0;
+  padding: 28px 34px 36px;
+  color: #1c1914;
+}
+.preview-verso {
+  background:
+    linear-gradient(90deg, #efe6d2 0%, #f6f0e0 72%, #e7dcc4 100%);
+  box-shadow: inset -16px 0 18px -18px #5b4a2a66;
+}
+.preview-recto {
+  background:
+    linear-gradient(90deg, #e4d7bc 0%, #f7f1e2 18%, #fbf6ea 100%);
+  box-shadow: inset 16px 0 18px -18px #5b4a2a55;
+  border-left: 1px solid #c4b394;
+}
+.preview-leaf {
+  margin: 0;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #7a6a4e;
+}
+.preview-lang {
+  margin: 4px 0 18px;
+  font-size: 11px;
+  color: #315840;
+  font-weight: 550;
+}
+.preview-prose {
+  margin: 0;
+  font-family: Georgia, "Iowan Old Style", serif;
+  font-size: 16px;
+  line-height: 1.62;
+  overflow-wrap: anywhere;
+  color: #241e16;
+}
+.preview-prose p {
+  margin: 0 0 0.9em;
+}
+.preview-prose p:last-child {
+  margin-bottom: 0;
+}
+.preview-empty {
+  margin: 28px 18px;
+  color: #7a6a4e;
+  font-size: 14px;
+  font-family: Georgia, serif;
+  font-style: italic;
+}
+@media (max-width: 860px) {
+  .chapter-preview-dialog {
+    width: calc(100vw - 16px);
+    height: calc(100dvh - 16px);
+  }
+  .preview-pages {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+  .preview-verso,
+  .preview-recto {
+    background: #f6f0e0;
+    box-shadow: none;
+    border-left: 0;
+  }
+  .preview-recto {
+    border-top: 1px solid #c4b394;
+  }
+  .preview-page {
+    padding: 22px 20px 28px;
+  }
 }

@@ -17,6 +17,7 @@ func registerRoutes(r *cais.Router, deps Deps, cfg cais.Config) {
 	r.Post("/books/{id}/retry", cais.IntParam("id", books.Retry))
 	r.Post("/books/{id}/pause", cais.IntParam("id", books.Pause))
 	r.Post("/books/{id}/chapters/{chapterID}/retry", books.RetryChapter)
+	r.Get("/books/{id}/chapters/{chapterID}/preview", books.Preview)
 	r.Get("/books/{id}/download", cais.IntParam("id", books.Download))
 	r.Get("/books/{id}/events", cais.IntParam("id", books.Events))
 	r.Get("/settings", settings.Show)
