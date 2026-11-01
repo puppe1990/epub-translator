@@ -1,11 +1,11 @@
 {
   "name": "epub-translator",
   "short_name": "epub-transla",
-  "description": "epub-translator — powered by Cais",
+  "description": "Seu estúdio de tradução de livros EPUB",
   "start_url": "/",
   "display": "fullscreen",
-  "background_color": "#081318",
-  "theme_color": "#1f8ba3",
+  "background_color": "#f6f7f2",
+  "theme_color": "#315c43",
   "orientation": "portrait-primary",
   "icons": [
     {

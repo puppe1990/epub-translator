@@ -1,8 +1,14 @@
-const CACHE_VERSION = 3;
+const CACHE_VERSION = 4;
 const CACHE = "cais-static-v" + CACHE_VERSION;
 
 const PRECACHE = [
   "/static/css/styles.css",
+  "/static/css/shell.css",
+  "/static/css/upload.css",
+  "/static/css/book.css",
+  "/static/css/workspace.css",
+  "/static/css/forms.css",
+  "/static/js/workspace.js",
   "/static/js/amarra.js",
   "/static/manifest.webmanifest",
   "/static/icons/icon-192.png",

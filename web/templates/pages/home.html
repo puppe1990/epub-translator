@@ -1,47 +1,58 @@
 {{ define "content" }}
-<section class="amarra-rise mx-auto max-w-5xl py-8">
-  <header>
-    <p class="font-mono text-[11px] uppercase tracking-[0.32em] text-copper">EPUB → tradução capítulo a capítulo</p>
-    <h1 class="mt-2 font-serif text-4xl leading-tight text-foam">Traduza um EPUB</h1>
-    <p class="mt-3 max-w-2xl text-sm leading-relaxed text-foam/60">
-      Envie o arquivo: a tradução roda capítulo a capítulo no servidor — se um capítulo falhar, o retry é só nele — e no fim você baixa o EPUB traduzido. O que ainda não estiver traduzido sai no idioma original.
-    </p>
+<section class="library-page">
+  <header class="page-heading">
+    <div><p class="eyebrow">SUA ESTANTE, SEM FRONTEIRAS</p><h1>Sua biblioteca<span class="heading-period">.</span></h1><p>Um novo idioma para as histórias que você quer ler.</p></div>
+    <span class="book-count">{{ len .Books }} {{ if eq (len .Books) 1 }}livro no estúdio{{ else }}livros no estúdio{{ end }}</span>
   </header>
-
-  {{ if .Error }}
-  <p class="mt-5 border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">{{ .Error }}</p>
-  {{ end }}
-
-  <.form action="/books" method="post" enctype="multipart/form-data" class="mt-8 border border-foam/10 bg-ink/60 p-5">
-    <div class="grid gap-4 sm:grid-cols-[1fr_12rem_auto] sm:items-end">
-      <.input type="file" name="epub" label="Arquivo .epub" accept=".epub,application/epub+zip" />
-      <.select name="target_language" label="Idioma de destino">
-        {{ range .Languages }}<option value="{{ . }}">{{ . }}</option>{{ end }}
-      </.select>
-      <.button type="submit">Enviar e traduzir</.button>
+  {{ if .Error }}<p class="notice notice-error" role="alert">{{ .Error }}</p>{{ end }}
+  <section class="upload-studio" aria-labelledby="upload-heading">
+    <div class="upload-content">
+      <p class="eyebrow">COMECE UMA NOVA LEITURA</p>
+      <h2 id="upload-heading">De um idioma<br />para o seu mundo.</h2>
+      <p>Envie seu EPUB. A tradução cuida de um capítulo por vez.</p>
+      <form action="/books" method="post" enctype="multipart/form-data" class="upload-form">
+        {{ csrfField .CSRFToken }}
+        <label for="epub-file" class="upload-dropzone">
+          <span class="upload-symbol">{{ template "icon_upload" . }}</span>
+          <span><strong data-upload-filename>Escolher um livro</strong><small>Arquivo .epub · até 64 MB</small></span>
+          <span class="upload-choose">Procurar</span>
+          <input id="epub-file" type="file" name="epub" accept=".epub,application/epub+zip" required aria-describedby="file-selected" />
+        </label>
+        <span id="file-selected" class="sr-only" aria-live="polite"></span>
+        <div class="upload-actions">
+          <div class="field"><label for="target-language">Quero ler em</label><select id="target-language" name="target_language" amarra-hook="native-select"><option value="pt-BR">Português do Brasil</option><option value="en">Inglês</option><option value="es">Espanhol</option><option value="fr">Francês</option><option value="de">Alemão</option><option value="it">Italiano</option></select></div>
+          <button class="button button-primary" type="submit">Enviar e traduzir {{ template "icon_arrow" . }}</button>
+        </div>
+      </form>
     </div>
-    <p class="mt-3 font-mono text-[10px] uppercase tracking-[0.2em] text-foam/40">
-      A chave do provedor fica em <a class="text-copper hover:text-foam transition-colors" href="/settings">Configurações</a>
-    </p>
-  </.form>
-
-  {{ if .Books }}
-  <h2 class="mt-12 font-mono text-[11px] uppercase tracking-[0.3em] text-copper">Livros</h2>
-  <div class="mt-3 border border-foam/10 bg-ink/40">
-    {{ range .Books }}
-    <a href="/books/{{ .ID }}" class="flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-foam/5 px-4 py-3 last:border-b-0 hover:bg-tide/40 transition-colors">
-      <span class="min-w-0 flex-1">
-        <span class="block truncate text-foam">{{ .Title }}</span>
-        <span class="mt-0.5 block font-mono text-[10px] uppercase tracking-[0.2em] text-foam/40">{{ .Author }} · {{ .SourceLanguage }} → {{ .TargetLanguage }}</span>
-      </span>
-      <span class="font-mono text-xs text-foam/60">{{ .DoneChapters }}/{{ .TotalChapters }}</span>
-      <span class="border px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.16em] {{ .ChipClass }}">{{ .StatusLabel }}</span>
-      <span class="font-mono text-[10px] uppercase tracking-[0.18em] text-copper">Abrir →</span>
-    </a>
+    <aside class="upload-art" aria-label="Tradução capítulo a capítulo">
+      <div class="book-composition" aria-hidden="true">
+        <div class="art-orbit"></div>
+        <div class="art-book art-book-back"><span>THE WORLD<br />BETWEEN<br />THE PAGES</span><small>ENGLISH EDITION</small></div>
+        <div class="art-book art-book-front"><span class="art-book-kicker">UMA NOVA LEITURA</span><span class="art-book-title">O mundo<br />entre<br /><em>páginas.</em></span><span class="art-book-line"></span><small>EDIÇÃO EM PORTUGUÊS</small></div>
+        <span class="art-language art-language-source">EN</span><span class="art-language art-language-target">PT-BR <span>✓</span></span>
+      </div>
+      <div class="art-caption"><span class="status-dot"></span> O mesmo livro. Novas possibilidades.</div>
+    </aside>
+  </section>
+  <div class="upload-footnote"><span>Trabalha no servidor. Você pode fechar a aba.</span><a href="/settings">Configurar provedor {{ template "icon_arrow" . }}</a></div>
+  <section class="library-section" aria-labelledby="library-heading">
+    <header class="section-heading"><h2 id="library-heading">Seus livros <span>{{ len .Books }}</span></h2><span class="muted">Da primeira página ao último capítulo.</span></header>
+    {{ if .Books }}
+    <div class="library-list">
+      {{ range .Books }}
+      <a href="/books/{{ .ID }}" class="library-row">
+        <span class="mini-cover" aria-hidden="true">{{ template "icon_book" . }}<small>EPUB</small></span>
+        <span class="library-book"><strong>{{ .Title }}</strong><span>{{ if .Author }}{{ .Author }}{{ else }}Autor não informado{{ end }}</span><span class="language-pair">{{ .SourceLanguage }} <span>→</span> {{ .TargetLanguage }}</span></span>
+        <span class="library-progress"><span>{{ .DoneChapters }} <span class="muted">/ {{ .TotalChapters }} capítulos</span></span><progress value="{{ .Percent }}" max="100" aria-label="Progresso de {{ .Title }}">{{ .Percent }}%</progress></span>
+        <span class="status-chip {{ .ChipClass }}">{{ .StatusLabel }}</span>
+        <span class="library-open" aria-label="Abrir livro">{{ template "icon_arrow" . }}</span>
+      </a>
+      {{ end }}
+    </div>
+    {{ else }}
+    <div class="library-empty"><span class="empty-book">{{ template "icon_book" . }}</span><h3>Sua próxima leitura começa aqui.</h3><p>Envie seu primeiro EPUB acima.<br />Seus livros e o progresso de cada tradução ficam nesta estante.</p></div>
     {{ end }}
-  </div>
-  {{ else }}
-  <p class="mt-12 border border-dashed border-foam/20 bg-ink/40 px-6 py-10 text-center text-sm text-foam/50">Nenhum EPUB enviado ainda.</p>
-  {{ end }}
+  </section>
 </section>
 {{ end }}

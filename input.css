@@ -3,26 +3,19 @@
 @tailwind utilities;
 
 @layer base {
-  /* Palette as CSS variables so the sidebar toggle flips the theme: :root is
-     the default dark harbor, html.light (amarra-theme hook) the light one. Values
-     are the published docs-site look (harbor night + cream paper, sea-teal accent,
-     coral) so a new app lands on the same design as the documentation. Keep the
-     ink/foam/copper/tide keys — the kit classes and amarra-cais doctor read them;
-     copper carries the sea teal now (#258). */
   :root {
-    --amarra-ink: 8 19 24;
-    --amarra-foam: 244 234 216;
-    --amarra-copper: 31 139 163;
-    --amarra-tide: 18 36 40;
-    --amarra-coral: 224 122 74;
+    --amarra-ink: 20 29 27;
+    --amarra-foam: 231 237 229;
+    --amarra-copper: 151 196 167;
+    --amarra-tide: 32 46 40;
+    --amarra-coral: 227 159 122;
   }
-
   html.light {
-    --amarra-ink: 247 241 230;
-    --amarra-foam: 16 33 38;
-    --amarra-copper: 15 107 128;
-    --amarra-tide: 228 217 196;
-    --amarra-coral: 224 122 74;
+    --amarra-ink: 246 247 242;
+    --amarra-foam: 33 48 41;
+    --amarra-copper: 46 91 68;
+    --amarra-tide: 232 237 227;
+    --amarra-coral: 163 87 48;
   }
 
   body {
@@ -42,14 +35,6 @@
 }
 
 @layer components {
-  /* Progressive native select (#219). Unsupported browsers keep the current
-     OS picker. Do not add a JS listbox here — Drive/iOS keep a real <select>. */
-  @supports (appearance: base-select) {
-    select {
-      appearance: base-select;
-    }
-  }
-
   /* Client-side invalid after interaction; server 422 still uses .Error. */
   .amarra-field:user-invalid,
   input:user-invalid,

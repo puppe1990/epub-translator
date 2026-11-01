@@ -68,13 +68,13 @@ func chapterStatusLabel(status string) string {
 func statusChipClass(status string) string {
 	switch status {
 	case "done":
-		return "border-copper/60 text-copper"
+		return "status-done"
 	case "running", "translating":
-		return "border-amber-400/60 text-amber-400"
+		return "status-running"
 	case "failed":
-		return "border-red-500/60 text-red-400"
+		return "status-failed"
 	default:
-		return "border-foam/25 text-foam/50"
+		return "status-pending"
 	}
 }
 
@@ -83,41 +83,23 @@ func statusChipClass(status string) string {
 // RenderBookFragments para o primeiro paint.
 var fragmentsTemplate = template.Must(template.New("fragments").Parse(`
 {{ define "book-progress" }}
-<div class="flex flex-wrap items-center gap-4">
-  <span class="border px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.16em] {{ .ChipClass }}">{{ .StatusLabel }}</span>
-  <div class="h-1 max-w-md flex-1 bg-foam/10"><div class="h-1 bg-copper transition-all" style="width: {{ .Percent }}%"></div></div>
-  <span class="font-mono text-xs text-foam/60">{{ .DoneChapters }}/{{ .TotalChapters }} capítulos</span>
-  {{ if .FailedChapters }}<span class="font-mono text-xs text-red-400">{{ .FailedChapters }} falha(s)</span>{{ end }}
-</div>
+<div class="progress-heading"><div><p class="eyebrow">PROGRESSO DA TRADUÇÃO</p><h2>{{ .DoneChapters }} <span>de {{ .TotalChapters }} capítulos</span></h2></div><span class="progress-percent">{{ .Percent }}<small>%</small></span></div>
+<progress value="{{ .Percent }}" max="100" aria-label="Progresso da tradução">{{ .Percent }}%</progress>
+<div class="progress-footer"><span class="status-chip {{ .ChipClass }}">{{ .StatusLabel }}</span>{{ if .FailedChapters }}<span class="failure-count">{{ .FailedChapters }} falha(s) · retente os capítulos abaixo</span>{{ else }}<span class="muted">{{ if eq .Status "done" }}Tudo pronto para sua próxima leitura.{{ else }}A tradução continua mesmo com esta aba fechada.{{ end }}</span>{{ end }}</div>
 {{ end }}
 
 {{ define "chapter-list" }}
-<table class="w-full text-sm">
-  <thead>
-    <tr class="border-b border-foam/10 text-left">
-      <th scope="col" class="px-3 py-2 font-mono text-[10px] uppercase tracking-[0.22em] text-foam/50">#</th>
-      <th scope="col" class="px-3 py-2 font-mono text-[10px] uppercase tracking-[0.22em] text-foam/50">Capítulo</th>
-      <th scope="col" class="px-3 py-2 font-mono text-[10px] uppercase tracking-[0.22em] text-foam/50">Status</th>
-      <th scope="col" class="px-3 py-2 font-mono text-[10px] uppercase tracking-[0.22em] text-foam/50">Tentativas</th>
-      <th scope="col" class="px-3 py-2 font-mono text-[10px] uppercase tracking-[0.22em] text-foam/50">Erro</th>
-      <th scope="col" class="px-3 py-2"></th>
-    </tr>
-  </thead>
-  <tbody class="divide-y divide-foam/5">
+<table class="chapter-table">
+  <caption class="sr-only">Capítulos e estado da tradução</caption>
+  <thead><tr><th scope="col" class="chapter-number">Nº</th><th scope="col">Capítulo</th><th scope="col">Status</th><th scope="col" class="chapter-attempts">Falhas</th><th scope="col"><span class="sr-only">Ações</span></th></tr></thead>
+  <tbody>
     {{ range .Chapters }}
-    <tr class="hover:bg-tide/40 transition-colors">
-      <td class="px-3 py-2 font-mono text-xs text-foam/40">{{ .Position }}</td>
-      <td class="px-3 py-2 text-foam">{{ .Title }}</td>
-      <td class="px-3 py-2"><span class="border px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] {{ .ChipClass }}">{{ .StatusLabel }}</span></td>
-      <td class="px-3 py-2 font-mono text-xs text-foam/50">{{ .Attempts }}</td>
-      <td class="px-3 py-2 max-w-md truncate text-xs text-red-400" title="{{ .Error }}">{{ .Error }}</td>
-      <td class="px-3 py-2 text-right">
-        {{ if eq .Status "failed" }}
-        <form action="/books/{{ $.BookID }}/chapters/{{ .ID }}/retry" method="post" class="inline">
-          <button type="submit" class="font-mono text-[10px] uppercase tracking-[0.18em] text-copper hover:text-foam transition-colors" title="Marca para retry e roda a fila">Retentar</button>
-        </form>
-        {{ end }}
-      </td>
+    <tr class="chapter-row chapter-{{ .Status }}">
+      <td class="chapter-number">{{ printf "%02d" .Position }}</td>
+      <td class="chapter-title"><span>{{ .Title }}</span>{{ if .Error }}<details class="chapter-error"><summary>Ver erro</summary><p>{{ .Error }}</p></details>{{ end }}</td>
+      <td class="chapter-status"><span class="status-chip {{ .ChipClass }}">{{ .StatusLabel }}</span></td>
+      <td class="chapter-attempts">{{ .Attempts }}</td>
+      <td class="chapter-action">{{ if eq .Status "failed" }}<form action="/books/{{ $.BookID }}/chapters/{{ .ID }}/retry" method="post"><button type="submit" class="text-button" aria-label="Retentar capítulo {{ .Position }}">Retentar <span>↻</span></button></form>{{ else if eq .Status "done" }}<span class="chapter-check" aria-label="Traduzido">✓</span>{{ end }}</td>
     </tr>
     {{ end }}
   </tbody>
