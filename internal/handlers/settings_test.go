@@ -54,6 +54,57 @@ func TestSettingsShow_listsProvidersAndMasksKeys(t *testing.T) {
 	}
 }
 
+func TestSettingsShow_nvidiaModelSelectPreservesSavedModel(t *testing.T) {
+	for _, model := range []string{"minimaxai/minimax-m3.1-flash", "nvidia/nemotron-3.5-lightning-30b-a3b", "meu-modelo-nim"} {
+		t.Run(model, func(t *testing.T) {
+			handler, s := newSettingsHandler(t)
+			if err := s.SaveProvider(models.Provider{Slug: "nvidia", Model: model, APIKey: "nvapi-secreta"}); err != nil {
+				t.Fatal(err)
+			}
+			rr := httptest.NewRecorder()
+			handler.Show(rr, httptest.NewRequest(http.MethodGet, "/settings", nil))
+			page := rr.Body.String()
+			start := strings.Index(page, `action="/settings/providers/nvidia"`)
+			if start < 0 {
+				t.Fatal("formulário NVIDIA ausente")
+			}
+			form := strings.SplitN(page[start:], "</form>", 2)[0]
+			for _, want := range []string{"<select", `name="model"`, `id="model-nvidia"`, `for="model-nvidia"`, `value="` + model + `" selected`, "google/gemma-4-31b-it", "nvidia/nemotron-3.5-lightning-30b-a3b"} {
+				if !strings.Contains(form, want) {
+					t.Errorf("seletor NVIDIA sem %q", want)
+				}
+			}
+			if strings.Contains(form, "nvapi-secreta") {
+				t.Error("chave exposta no formulário")
+			}
+		})
+	}
+}
+
+func TestSettingsSaveProvider_selectedNvidiaModelKeepsKeyAndResolves(t *testing.T) {
+	handler, s := newSettingsHandler(t)
+	if err := s.SaveProvider(models.Provider{Slug: "nvidia", APIKey: "nvapi-existente"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.SetSetting(translator.KeyActiveProvider, "nvidia"); err != nil {
+		t.Fatal(err)
+	}
+	model := "nvidia/nemotron-3.5-lightning-30b-a3b"
+	form := url.Values{"model": {model}, "api_key": {""}}
+	req := httptest.NewRequest(http.MethodPost, "/settings/providers/nvidia", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.SetPathValue("slug", "nvidia")
+	rr := httptest.NewRecorder()
+	handler.SaveProvider(rr, req)
+	config, err := translator.Resolve(s)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rr.Code != http.StatusSeeOther || config.Model != model || config.APIKey != "nvapi-existente" {
+		t.Errorf("status=%d, modelo=%q; modelo selecionado ou chave não preservados", rr.Code, config.Model)
+	}
+}
+
 func TestSettingsSaveProvider_keepsPresetBaseAndStoresModel(t *testing.T) {
 	handler, s := newSettingsHandler(t)
 

@@ -36,14 +36,15 @@ func NewSettingsHandler(views *view.Renderer, s store.Store, site meta.Site,
 
 // providerRow é a linha de um preset de provedor na página.
 type providerRow struct {
-	Slug     string
-	Name     string
-	BaseURL  string
-	Model    string
-	KeyMask  string
-	HasKey   bool
-	Active   bool
-	IsCustom bool
+	Slug         string
+	Name         string
+	BaseURL      string
+	Model        string
+	ModelOptions []string
+	KeyMask      string
+	HasKey       bool
+	Active       bool
+	IsCustom     bool
 }
 
 func (h *SettingsHandler) Show(w http.ResponseWriter, r *http.Request) {
@@ -79,6 +80,7 @@ func (h *SettingsHandler) Show(w http.ResponseWriter, r *http.Request) {
 		if row.HasKey {
 			row.KeyMask = maskKey(provider.APIKey)
 		}
+		row.ModelOptions = providerModelOptions(preset.Slug, row.Model)
 		if row.Active {
 			activeName = preset.Name
 		}
