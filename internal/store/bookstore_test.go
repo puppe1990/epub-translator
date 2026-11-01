@@ -182,6 +182,29 @@ func TestStore_chapterLifecycleAndCounts(t *testing.T) {
 	}
 }
 
+func TestStore_resetDoneChapterPutsItBackInQueue(t *testing.T) {
+	s := newTestStore(t)
+	bookID := seedBook(t, s)
+	chapters, _ := s.ListChapters(bookID)
+	if err := s.SetChapterDone(chapters[0].ID, "<p>Um traduzido</p>"); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.ResetChapter(chapters[0].ID); err != nil {
+		t.Fatal(err)
+	}
+	reset, _ := s.FindChapter(chapters[0].ID)
+	if reset.Status != "pending" {
+		t.Fatalf("status = %q, queria pending para refazer", reset.Status)
+	}
+	pending, err := s.PendingChapters(bookID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(pending) == 0 || pending[0].ID != chapters[0].ID {
+		t.Errorf("pending = %+v, capítulo traduzido deveria voltar à fila", pending)
+	}
+}
+
 func TestStore_resetRunningChapters(t *testing.T) {
 	s := newTestStore(t)
 	bookID := seedBook(t, s)

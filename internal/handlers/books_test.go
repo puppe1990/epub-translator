@@ -302,6 +302,65 @@ func TestBooksRetryChapter_putsFailedBackInQueue(t *testing.T) {
 	}
 }
 
+func TestBooksShow_rendersRedoOnTranslatedChapter(t *testing.T) {
+	handler, s, _, _ := newBooksHandler(t)
+	bookID, chapters := seedStoredBook(t, s, "")
+	_ = s.SetChapterDone(chapters[0].ID, "<p>Olá um.</p>")
+	_ = s.SetChapterFailed(chapters[1].ID, "429")
+
+	rr := httptest.NewRecorder()
+	handler.Show(rr, httptest.NewRequest(http.MethodGet, "/books/1", nil), bookID)
+	page := rr.Body.String()
+
+	doneRetry := "/books/1/chapters/" + strconv.FormatInt(chapters[0].ID, 10) + "/retry"
+	failedRetry := "/books/1/chapters/" + strconv.FormatInt(chapters[1].ID, 10) + "/retry"
+	if !strings.Contains(page, "Refazer") {
+		t.Error("capítulo traduzido sem botão Refazer")
+	}
+	if !strings.Contains(page, `aria-label="Refazer capítulo 1"`) {
+		t.Error("Refazer sem rótulo do capítulo traduzido")
+	}
+	if !strings.Contains(page, doneRetry) {
+		t.Errorf("página sem retry do traduzido %q", doneRetry)
+	}
+	if !strings.Contains(page, "Retentar") {
+		t.Error("capítulo falho perdeu o Retentar")
+	}
+	if !strings.Contains(page, failedRetry) {
+		t.Errorf("página sem retry do falho %q", failedRetry)
+	}
+}
+
+func TestBooksRetryChapter_redoesTranslatedChapter(t *testing.T) {
+	handler, s, runner, _ := newBooksHandler(t)
+	bookID, chapters := seedStoredBook(t, s, "")
+	_ = s.SetChapterDone(chapters[0].ID, "<p>tradução velha</p>")
+	_ = s.SetChapterDone(chapters[1].ID, "<p>outro já feito</p>")
+	_ = s.SetBookStatus(bookID, "done")
+
+	req := httptest.NewRequest(http.MethodPost, "/books/1/chapters/1/retry", nil)
+	req.SetPathValue("id", "1")
+	req.SetPathValue("chapterID", strconv.FormatInt(chapters[0].ID, 10))
+	rr := httptest.NewRecorder()
+	handler.RetryChapter(rr, req)
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, body = %s", rr.Code, rr.Body.String())
+	}
+	runner.Wait(bookID)
+
+	updated, _ := s.FindChapter(chapters[0].ID)
+	if updated.Status != "done" {
+		t.Errorf("status = %q, queria done após refazer", updated.Status)
+	}
+	if updated.TranslatedText != "<p>Olá one.</p>" {
+		t.Errorf("translated = %q, queria retradução", updated.TranslatedText)
+	}
+	other, _ := s.FindChapter(chapters[1].ID)
+	if other.TranslatedText != "<p>outro já feito</p>" {
+		t.Errorf("capítulo vizinho mudou: %q", other.TranslatedText)
+	}
+}
+
 func TestBooksDownload_servesRebuiltEPUB(t *testing.T) {
 	handler, s, _, _ := newBooksHandler(t)
 	source := writeTestEPUB(t, t.TempDir())

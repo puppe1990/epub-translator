@@ -206,8 +206,8 @@ func (h *BooksHandler) Show(w http.ResponseWriter, r *http.Request, id int64) {
 	}), http.StatusOK)
 }
 
-// Retry dispara a fila do livro; RetryChapter devolve o capítulo falho para a
-// fila antes de disparar — a chamada continua sendo por capítulo.
+// Retry dispara a fila do livro; RetryChapter devolve o capítulo falho ou
+// já traduzido para a fila antes de disparar — a chamada continua sendo por capítulo.
 func (h *BooksHandler) Retry(w http.ResponseWriter, r *http.Request, id int64) {
 	if _, err := h.store.FindBook(id); err != nil {
 		http.NotFound(w, r)

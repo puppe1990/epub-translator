@@ -202,10 +202,11 @@ func (s *SQLiteStore) SetChapterFailed(id int64, message string) error {
 		updated_at = CURRENT_TIMESTAMP WHERE id = ?`, message, id)
 }
 
-// ResetChapter devolve um capítulo falho para a fila (botão "Retentar").
+// ResetChapter devolve um capítulo falho ou já traduzido para a fila
+// (Retentar / Refazer). A tradução antiga fica até a nova gravar.
 func (s *SQLiteStore) ResetChapter(id int64) error {
 	return s.updateChapter(`UPDATE chapters SET status = 'pending', error = '',
-		updated_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'failed'`, id)
+		updated_at = CURRENT_TIMESTAMP WHERE id = ? AND status IN ('failed', 'done')`, id)
 }
 
 func (s *SQLiteStore) updateChapter(query string, args ...any) error {
