@@ -64,11 +64,14 @@ func TestInputCharBudget_rivaLeavesRoomForOutputIn8k(t *testing.T) {
 }
 
 func TestInputCharBudget_deepseekSplitsSoNIMCanFinishUnderTimeout(t *testing.T) {
-	// NIM DeepSeek só manda headers quando a geração acaba. Um capítulo de
-	// ~8k tokens (Chapter Eight) estoura 4 min à espera do primeiro byte.
+	// NIM gateway devolve 504 ~4 min em completion buffered. 12k chars do
+	// Chapter Eight (The Mom Test, ~33k chars / 7815 tokens) ainda 504ou.
 	budget := InputCharBudget("deepseek-ai/deepseek-v4.1-flash")
 	if budget <= 0 {
 		t.Fatal("DeepSeek NIM precisa fatiar capítulo grande senão o Client.Timeout corta sem headers")
+	}
+	if budget > 6000 {
+		t.Fatalf("orçamento %d ainda 504 no NIM; Chapter Eight precisou ≤6000", budget)
 	}
 }
 

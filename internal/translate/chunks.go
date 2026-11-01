@@ -15,6 +15,10 @@ const rivaInputCharBudget = 6000
 // ValidateBody vê fonte 7645 vs resposta ~6806. 12k runes cabem folgado.
 const geminiInputCharBudget = 12000
 
+// NIM DeepSeek só manda headers no fim da geração e o gateway 504 ~4 min.
+// 12k chars do Chapter Eight (The Mom Test) ainda 504ou; 6k cabe nessa janela.
+const deepseekInputCharBudget = 6000
+
 func InputCharBudget(model string) int {
 	lower := strings.ToLower(model)
 	if strings.Contains(lower, "riva-translate") {
@@ -23,10 +27,8 @@ func InputCharBudget(model string) int {
 	if strings.Contains(lower, "gemini") {
 		return geminiInputCharBudget
 	}
-	// NIM DeepSeek só manda headers no fim da geração. Capítulo ~8k tokens
-	// (Chapter Eight) estourou 240s × 3. Mesmo teto do Gemini: ~2–3 partes.
 	if strings.Contains(lower, "deepseek") {
-		return geminiInputCharBudget
+		return deepseekInputCharBudget
 	}
 	return 0
 }
