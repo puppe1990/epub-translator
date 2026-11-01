@@ -62,3 +62,46 @@ func TestInputCharBudget_rivaLeavesRoomForOutputIn8k(t *testing.T) {
 		t.Error("modelos de contexto longo não fatiam")
 	}
 }
+
+func TestInputCharBudget_geminiSplitsLargeIndexUnderOutputCap(t *testing.T) {
+	// gemini-3.5-flash-lite: 1M de entrada, 65_536 de saída. O INDEX do
+	// Total Recall tem ~80k tokens / 218k chars — um shot só trunca e o
+	// ValidateBody perde centenas de <p>/<a>.
+	budget := InputCharBudget("gemini-3.5-flash-lite")
+	if budget <= 0 {
+		t.Fatal("Gemini precisa fatiar índice grande: senão a saída trunca em 64k tokens")
+	}
+	if budget >= 65536 {
+		t.Fatalf("orçamento %d não deixa folga para a saída de 64k", budget)
+	}
+	if InputCharBudget("google/gemini-2.5-flash") != budget {
+		t.Error("OpenRouter google/gemini-* também precisa fatiar")
+	}
+	body := indexLikeBody(1302)
+	parts := splitBody(body, budget)
+	if len(parts) < 2 {
+		t.Fatalf("índice de %d runes deveria virar várias partes, parts=%d budget=%d",
+			utf8.RuneCountInString(body), len(parts), budget)
+	}
+	if strings.Join(parts, "") != body {
+		t.Fatal("juntar as partes tem que reproduzir o original")
+	}
+	for i, chunk := range parts {
+		if utf8.RuneCountInString(chunk) > budget {
+			t.Errorf("chunk %d tem %d runes, orçamento %d", i, utf8.RuneCountInString(chunk), budget)
+		}
+	}
+}
+
+func indexLikeBody(entries int) string {
+	var b strings.Builder
+	b.WriteString(`<h2 class="h2c" id="idx"><a class="calibre2" id="page_625"/><a class="calibre2" id="index"/>INDEX</h2>`)
+	for i := 0; i < entries; i++ {
+		b.WriteString(`<p class="indexmain">topic `)
+		b.WriteString(strings.Repeat("entry ", 4))
+		b.WriteString(`<a class="nounder1" href="part.html#page_n">`)
+		b.WriteString("12")
+		b.WriteString(`</a></p>`)
+	}
+	return b.String()
+}

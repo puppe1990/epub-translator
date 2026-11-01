@@ -19,6 +19,23 @@ const (
 
 var sentenceSplitRE = regexp.MustCompile(`[.!?]+(?:\s+|$)`)
 
+// denseShortParagraphs detecta INDEX/sumário: dezenas de <p> curtos. O
+// splitter de frases quebra em "Mr." e trata blocos de nomes como "eco" do
+// original, então o join falha como texto misturado mesmo traduzido.
+func denseShortParagraphs(html string) bool {
+	paragraphs := 0
+	for _, match := range tagRE.FindAllStringSubmatch(html, -1) {
+		if match[1] == "" && strings.EqualFold(match[2], "p") {
+			paragraphs++
+		}
+	}
+	words := len(strings.Fields(plainText(html)))
+	if paragraphs < 80 || words == 0 {
+		return false
+	}
+	return words/paragraphs <= 20
+}
+
 func rejectMixedLanguage(sourceText, outText string) error {
 	srcSents := splitSentences(sourceText)
 	srcWords := make([][]string, 0, len(srcSents))

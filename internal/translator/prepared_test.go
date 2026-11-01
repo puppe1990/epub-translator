@@ -55,3 +55,24 @@ func TestPrepare_rivaGetsInputCharBudget(t *testing.T) {
 		t.Errorf("MaxInputChars = %d, want %d", service.MaxInputChars, want)
 	}
 }
+
+func TestPrepare_geminiGetsInputCharBudget(t *testing.T) {
+	s := newTestStore(t)
+	_ = s.SaveProvider(models.Provider{
+		Slug: "gemini", BaseURL: "https://generativelanguage.googleapis.com/v1beta/openai",
+		Model: "gemini-3.5-flash-lite", APIKey: "k",
+	})
+	_ = s.SetSetting(KeyActiveProvider, "gemini")
+	prepared, _, err := (Configured{Store: s}).Prepare()
+	if err != nil {
+		t.Fatal(err)
+	}
+	service, ok := prepared.(translate.Service)
+	if !ok {
+		t.Fatalf("Prepare devolveu %T, want translate.Service", prepared)
+	}
+	want := translate.InputCharBudget("gemini-3.5-flash-lite")
+	if service.MaxInputChars != want || want <= 0 {
+		t.Errorf("MaxInputChars = %d, want %d (Gemini 64k output)", service.MaxInputChars, want)
+	}
+}

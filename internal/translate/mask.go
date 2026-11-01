@@ -28,15 +28,12 @@ func selfClosingTag(tag string) bool {
 	return !strings.HasPrefix(t, "</") && strings.HasSuffix(t, "/>")
 }
 
-// keepIfDropped recoloca âncoras de página do EPUB (`<a id="page_3"/>`)
-// que o Riva descarta porque não têm texto.
+// keepIfDropped recoloca âncoras do EPUB que o modelo dropa: page-breaks
+// self-closing (`<a id="page_3"/>`) e o par do INDEX (`<a href>…</a>`),
+// em que o Gemini costuma copiar o </a> e omitir a abertura.
 func keepIfDropped(tag string) bool {
 	if selfClosingTag(tag) {
 		return true
-	}
-	lower := strings.ToLower(tag)
-	if strings.Contains(lower, "href=") {
-		return false
 	}
 	match := tagRE.FindStringSubmatch(tag)
 	return len(match) >= 3 && strings.EqualFold(match[2], "a")

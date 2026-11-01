@@ -51,6 +51,26 @@ func TestUnmaskHTMLTags_reinsertsDroppedSelfClosingAnchors(t *testing.T) {
 	}
 }
 
+func TestUnmaskHTMLTags_reinsertsDroppedHrefOpenings(t *testing.T) {
+	// INDEX do Total Recall: o Gemini copia o </a> e dropa o <a href>.
+	// ValidateBody então vê fonte N, resposta N-1, faltando [a], sobrando [].
+	source := `<p class="indexmain">accent, Arnold’s, <a class="nounder1" href="part0057.html#page_193">193</a></p>`
+	masked, tags := maskHTMLTags(source)
+	translated := strings.ReplaceAll(masked, "accent, Arnold’s,", "sotaque, de Arnold,")
+	for i, tag := range tags {
+		if strings.Contains(strings.ToLower(tag), "href=") {
+			translated = strings.Replace(translated, tagPlaceholder(i), "", 1)
+		}
+	}
+	got := unmaskHTMLTags(translated, tags)
+	if err := ValidateBody(source, got); err != nil {
+		t.Fatalf("abertura <a href> dropada deveria voltar: %v\ngot=%s", err, got)
+	}
+	if !strings.Contains(got, `href="part0057.html#page_193"`) {
+		t.Errorf("perdeu o href: %s", got)
+	}
+}
+
 func TestUnmaskHTMLTags_reinsertsEmptyAnchorPairs(t *testing.T) {
 	source := `<h2><a id="page_3"></a>CHAPTER 1</h2><p>Hello world, good morning everyone.</p>`
 	masked, tags := maskHTMLTags(source)

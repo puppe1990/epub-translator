@@ -70,6 +70,26 @@ func TestValidateBody_rejectsMixedLanguageChapter(t *testing.T) {
 	}
 }
 
+func TestValidateBody_acceptsTranslatedBookIndex(t *testing.T) {
+	// INDEX real: "Mr." quebra o splitter em blocos de nomes (Jaccard alto) e
+	// entradas traduzidas (fresh). O join via ValidateBody via isso como
+	// "texto misturado" mesmo com cada <p> traduzido.
+	var src, out strings.Builder
+	src.WriteString(`<h2>INDEX</h2>`)
+	out.WriteString(`<h2>ÍNDICE</h2>`)
+	for i := 0; i < 90; i++ {
+		fmt.Fprintf(&src, `<p>Gerstl, Fredi, 26, 27, 47, 60, 133, 143, 291. Mr. Universe contest %d, 49, 69</p>`, i)
+		fmt.Fprintf(&out, `<p>Gerstl, Fredi, 26, 27, 47, 60, 133, 143, 291. Mr. Universe concurso %d, 49, 69</p>`, i)
+	}
+	for i := 0; i < 90; i++ {
+		fmt.Fprintf(&src, `<p>See also specific movie. Action movies, 337, 360, 402, 410, 439</p>`)
+		fmt.Fprintf(&out, `<p>Ver também filme específico. Filmes de ação, 337, 360, 402, 410, 439</p>`)
+	}
+	if err := ValidateBody(src.String(), out.String()); err != nil {
+		t.Fatalf("índice com nomes próprios mantidos deveria passar: %v", err)
+	}
+}
+
 func TestValidateBody_acceptsFullyTranslatedLongChapter(t *testing.T) {
 	source := mixedChapterSource()
 	out := mixedChapterAllPortuguese()
@@ -226,6 +246,69 @@ func TestService_translatesLongBodyInChunksUnderBudget(t *testing.T) {
 	}
 	if err := ValidateBody(body, out); err != nil {
 		t.Errorf("resultado juntado inválido: %v", err)
+	}
+}
+
+// cappingClient imita o teto de saída do Gemini: devolve só os primeiros N
+// nomes de tag (o INDEX do Total Recall morre assim em 64k tokens).
+type cappingClient struct {
+	maxTags int
+	calls   int
+}
+
+func (c *cappingClient) Translate(_ context.Context, _, content string) (string, error) {
+	c.calls++
+	body := rivaSourceText(content)
+	translated := strings.ReplaceAll(body, "topic", "tema")
+	return keepFirstNonSpanTags(translated, c.maxTags), nil
+}
+
+func keepFirstNonSpanTags(html string, max int) string {
+	matches := tagRE.FindAllStringIndex(html, -1)
+	count := 0
+	cut := len(html)
+	for _, match := range matches {
+		sub := tagRE.FindStringSubmatch(html[match[0]:match[1]])
+		if len(sub) >= 3 && strings.EqualFold(sub[2], "span") {
+			continue
+		}
+		count++
+		if count >= max {
+			cut = match[1]
+			break
+		}
+	}
+	return html[:cut]
+}
+
+func TestService_indexSurvivesOutputCapWhenChunked(t *testing.T) {
+	body := indexLikeBody(80)
+	sourceTags := len(tagNames(body))
+	capTags := sourceTags * 2 / 3
+	if capTags < 10 {
+		t.Fatalf("fixture pequena demais: %d tags", sourceTags)
+	}
+	client := &cappingClient{maxTags: capTags}
+
+	_, err := (Service{Client: client, Attempts: 1, MaxInputChars: 0}).TranslateBody(context.Background(), "pt-BR", body)
+	if err == nil {
+		t.Fatal("índice inteiro acima do teto de saída tinha que falhar")
+	}
+	if !strings.Contains(err.Error(), "tags alteradas") {
+		t.Fatalf("queríamos tags alteradas, veio %v", err)
+	}
+
+	budget := 1500
+	client = &cappingClient{maxTags: capTags}
+	out, err := (Service{Client: client, Attempts: 1, MaxInputChars: budget}).TranslateBody(context.Background(), "pt-BR", body)
+	if err != nil {
+		t.Fatalf("fatiado abaixo do teto tinha que passar: %v", err)
+	}
+	if client.calls < 2 {
+		t.Fatalf("calls = %d, índice precisa de mais de uma parte", client.calls)
+	}
+	if err := ValidateBody(body, out); err != nil {
+		t.Fatalf("juntado inválido: %v", err)
 	}
 }
 

@@ -10,9 +10,18 @@ import (
 // cobre XHTML com muitas tags. Modelos longos (0) não fatiam.
 const rivaInputCharBudget = 6000
 
+// Gemini 3.5 Flash-Lite aceita 1M de entrada e só 65_536 de saída. Um INDEX
+// de ~80k tokens (Total Recall cap. 221) estoura esse teto num shot só:
+// ValidateBody vê fonte 7645 vs resposta ~6806. 12k runes cabem folgado.
+const geminiInputCharBudget = 12000
+
 func InputCharBudget(model string) int {
-	if strings.Contains(model, "riva-translate") {
+	lower := strings.ToLower(model)
+	if strings.Contains(lower, "riva-translate") {
 		return rivaInputCharBudget
+	}
+	if strings.Contains(lower, "gemini") {
+		return geminiInputCharBudget
 	}
 	return 0
 }
