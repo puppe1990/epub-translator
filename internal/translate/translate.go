@@ -282,8 +282,8 @@ var (
 )
 
 // ValidateBody confere a resposta contra o original: sequência de tags
-// idêntica (normalizada), fragmento limpo (sem preâmbulo), tamanho plausível e
-// texto de fato traduzido.
+// idêntica (normalizada), fragmento limpo (sem preâmbulo), tamanho plausível,
+// texto de fato traduzido e sem mistura de idioma original com tradução.
 func ValidateBody(source, out string) error {
 	if strings.TrimSpace(out) == "" {
 		return fmt.Errorf("resposta vazia")
@@ -316,6 +316,11 @@ func ValidateBody(source, out string) error {
 	case strings.TrimSpace(sourceLead) != "" &&
 		len(strings.Fields(outLead)) > len(strings.Fields(sourceLead))*3:
 		return fmt.Errorf("texto inicial muito maior que o original")
+	}
+	if sourceText != "" {
+		if err := rejectMixedLanguage(sourceText, outText); err != nil {
+			return err
+		}
 	}
 	return nil
 }

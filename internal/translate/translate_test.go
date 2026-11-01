@@ -57,6 +57,48 @@ func TestValidateBody_rejectsUntranslated(t *testing.T) {
 	}
 }
 
+func TestValidateBody_rejectsMixedLanguageChapter(t *testing.T) {
+	// Recorte do cap. 26: o Riva ecoa o primeiro corte em inglês e traduz o resto.
+	source := mixedChapterSource()
+	out := mixedChapterEchoThenPortuguese()
+	err := ValidateBody(source, out)
+	if err == nil {
+		t.Fatal("aceitou capítulo com começo em inglês e resto em português")
+	}
+	if !strings.Contains(err.Error(), "misturado") {
+		t.Errorf("erro = %v, queria misturado", err)
+	}
+}
+
+func TestValidateBody_acceptsFullyTranslatedLongChapter(t *testing.T) {
+	source := mixedChapterSource()
+	out := mixedChapterAllPortuguese()
+	if err := ValidateBody(source, out); err != nil {
+		t.Fatalf("tradução inteira em português deveria passar: %v", err)
+	}
+}
+
+func mixedChapterSource() string {
+	return `<p>IN BODYBUILDING I WAS king of the mountain, but back in everyday LA I was still just another immigrant struggling to learn English and make a life. My mind was so fixed on what I was doing in America that I rarely gave a thought to Austria or Germany. If I was competing in Europe, I'd go home to visit, and I kept in touch with Fredi Gerstl in Graz and Albert Busek in Munich. Often I would cross paths with Albert and other European friends on the bodybuilding circuit.</p>` +
+		`<p>I regularly sent pictures and letters home to my parents, telling them what I was doing. Whenever I won a championship, I'd send them the trophy, because I didn't need it in my apartment, and I wanted them to be proud. I'm not sure any of this meant much to them at the start, but after awhile they put up the photos and built a special shelf in their home to show off the trophies. My dad would answer my letters for both of them. He always enclosed my original letter marked up in red ink, correcting my mistakes in spelling and grammar.</p>` +
+		`<p>Artie took me to a Hungarian Jewish restaurant where the dishes were just like Austrian food. The owner came over to take our order and I told him I saw something here that I like, give me a little of your junk. That kind of joke made it easy to laugh with strangers in the new country. We stayed until late talking about training, work, and the people we had left behind in Europe.</p>` +
+		`<p>He always made time to sit with me after dinner and talk through the words I had gotten wrong during the week. Those evenings taught me more English than any classroom I had tried before coming to America. I wrote everything down and read it again in the morning before going to the gym.</p>`
+}
+
+func mixedChapterEchoThenPortuguese() string {
+	return `<p>IN BODYBUILDING I WAS king of the mountain, but back in everyday LA I was still just another immigrant struggling to learn English and make a life. My mind was so fixed on what I was doing in America that I rarely gave a thought to Austria or Germany. If I was competing in Europe, I'd go home to visit, and I kept in touch with Fredi Gerstl in Graz and Albert Busek in Munich. Often I would cross paths with Albert and other European friends on the bodybuilding circuit.</p>` +
+		`<p>I regularly sent pictures and letters home to my parents, telling them what I was doing. Whenever I won a championship, I'd send them the trophy, because I didn't need it in my apartment, and I wanted them to be proud. I'm not sure any of this meant much to them at the start, but after a while they put up the photos and built a special shelf in their home to show off the trophies. My dad would answer my letters for both of them. He always enclosed my original letter marked up in red ink, correcting my mistakes in spelling and grammar.</p>` +
+		`<p>Como um presente, Artie me levou a um restaurante judeu-húngaro onde os pratos eram iguais à comida austríaca. O proprietário veio tomar nosso pedido e eu disse que vi uma coisa aqui de que gosto, dê um pouco do seu lixo. Esse tipo de piada tornava fácil rir com desconhecidos no país novo. Ficamos até tarde falando de treino, trabalho e das pessoas que tínhamos deixado para trás na Europa.</p>` +
+		`<p>Ele sempre encontrava tempo para sentar comigo depois do jantar e revisar as palavras que eu tinha errado durante a semana. Aquelas noites me ensinaram mais inglês do que qualquer sala de aula que eu tinha tentado antes de chegar à América. Eu escrevia tudo e lia de novo de manhã antes de ir para a academia.</p>`
+}
+
+func mixedChapterAllPortuguese() string {
+	return `<p>No fisiculturismo eu era o rei da montanha, mas na vida comum de Los Angeles eu ainda era só mais um imigrante lutando para aprender inglês e construir uma vida. Minha cabeça estava tão presa no que eu fazia na América que quase não pensava na Áustria ou na Alemanha. Se eu competia na Europa, ia visitar casa e mantinha contato com Fredi Gerstl em Graz e Albert Busek em Munique. Muitas vezes cruzava com Albert e outros amigos europeus no circuito de fisiculturismo.</p>` +
+		`<p>Eu mandava fotos e cartas para meus pais, contando o que estava fazendo. Sempre que ganhava um campeonato, enviava o troféu, porque não precisava dele no apartamento e queria que eles sentissem orgulho. No começo eu não tinha certeza se isso importava para eles, mas depois de um tempo eles colocaram as fotos e montaram uma prateleira especial para exibir os troféus. Meu pai respondia as cartas dos dois. Sempre devolvia a carta original marcada em tinta vermelha, corrigindo meus erros de ortografia e gramática.</p>` +
+		`<p>Como um presente, Artie me levou a um restaurante judeu-húngaro onde os pratos eram iguais à comida austríaca. O proprietário veio tomar nosso pedido e eu disse que vi uma coisa aqui de que gosto, dê um pouco do seu lixo. Esse tipo de piada tornava fácil rir com desconhecidos no país novo. Ficamos até tarde falando de treino, trabalho e das pessoas que tínhamos deixado para trás na Europa.</p>` +
+		`<p>Ele sempre encontrava tempo para sentar comigo depois do jantar e revisar as palavras que eu tinha errado durante a semana. Aquelas noites me ensinaram mais inglês do que qualquer sala de aula que eu tinha tentado antes de chegar à América. Eu escrevia tudo e lia de novo de manhã antes de ir para a academia.</p>`
+}
+
 func TestValidateBody_rejectsRatioBlowup(t *testing.T) {
 	source := `<p>Hello world, good morning everyone.</p>`
 	out := `<p>` + strings.Repeat("palavra ", 60) + `</p>`
