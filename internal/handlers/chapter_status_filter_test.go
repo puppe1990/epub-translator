@@ -109,7 +109,7 @@ func TestBooksShow_emptyStatusFilterKeepsChips(t *testing.T) {
 	handler.Show(rr, req, bookID)
 	page := rr.Body.String()
 
-	if !strings.Contains(page, "Nenhum capítulo com este status.") {
+	if !strings.Contains(page, "Nenhum capítulo neste filtro.") {
 		t.Error("filtro sem linhas deveria explicar o vazio")
 	}
 	if !strings.Contains(page, "Todos") || !strings.Contains(page, "Falhou") {
@@ -128,7 +128,7 @@ func TestBooksShow_pausedChapterIsNotListedAsQueued(t *testing.T) {
 	queued := httptest.NewRecorder()
 	handler.Show(queued, httptest.NewRequest(http.MethodGet, "/books/1?status=pending", nil), bookID)
 	queuePage := queued.Body.String()
-	if !strings.Contains(queuePage, "Nenhum capítulo com este status.") {
+	if !strings.Contains(queuePage, "Nenhum capítulo neste filtro.") {
 		t.Error("capítulo interrompido não pode aparecer em Na fila")
 	}
 	if !strings.Contains(queuePage, `href="/books/1?status=paused"`) {
@@ -152,7 +152,7 @@ func TestChapterList_statusFilterChipsCountEveryStatus(t *testing.T) {
 		{ID: 2, Position: 2, Title: "Erro", Status: "failed"},
 		{ID: 3, Position: 3, Title: "Fila", Status: "pending"},
 		{ID: 4, Position: 4, Title: "Agora", Status: "running"},
-	}, "pending")
+	}, chapterListFilter{Status: "pending"})
 	if err != nil {
 		t.Fatal(err)
 	}

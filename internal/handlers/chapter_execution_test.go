@@ -9,7 +9,7 @@ import (
 )
 
 func TestChapterListHasExecutionColumnsWithoutInventingLegacyValues(t *testing.T) {
-	_, list, err := RenderBookFragments(models.Book{ID: 1}, []models.Chapter{{ID: 1, Position: 1, Title: "Capítulo antigo", Status: "done"}}, "")
+	_, list, err := RenderBookFragments(models.Book{ID: 1}, []models.Chapter{{ID: 1, Position: 1, Title: "Capítulo antigo", Status: "done"}}, chapterListFilter{})
 	if err != nil {
 		t.Fatal(err)
 	}

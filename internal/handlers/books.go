@@ -183,8 +183,8 @@ func (h *BooksHandler) Show(w http.ResponseWriter, r *http.Request, id int64) {
 		httpx.ServerError(w, err, h.cfg)
 		return
 	}
-	status := chapterStatusFilter(r.URL.Query().Get("status"))
-	progress, list, err := RenderBookFragments(book, chapters, status)
+	filter := parseChapterListFilter(r.URL.Query())
+	progress, list, err := RenderBookFragments(book, chapters, filter)
 	if err != nil {
 		httpx.ServerError(w, err, h.cfg)
 		return
@@ -199,7 +199,7 @@ func (h *BooksHandler) Show(w http.ResponseWriter, r *http.Request, id int64) {
 		"Title":           book.Title,
 		"ActiveNav":       "home",
 		"Book":            newBookView(book),
-		"StatusFilter":    status,
+		"FilterQuery":     filter.query(),
 		"ProgressHTML":    template.HTML(progress),
 		"ChapterListHTML": template.HTML(list),
 		"ActionsHTML":     template.HTML(actions),
@@ -303,7 +303,7 @@ func (h *BooksHandler) Events(w http.ResponseWriter, r *http.Request, id int64) 
 			if err != nil {
 				continue
 			}
-			progress, list, err := RenderBookFragments(book, chapters, chapterStatusFilter(r.URL.Query().Get("status")))
+			progress, list, err := RenderBookFragments(book, chapters, parseChapterListFilter(r.URL.Query()))
 			if err != nil {
 				continue
 			}

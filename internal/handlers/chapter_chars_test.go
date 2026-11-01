@@ -11,7 +11,7 @@ func TestChapterListShowsFormattedSourceTokens(t *testing.T) {
 	_, list, err := RenderBookFragments(models.Book{ID: 1}, []models.Chapter{
 		{ID: 1, Position: 1, Title: "Curto", Status: "done", SourceTokens: 10},
 		{ID: 2, Position: 2, Title: "Longo", Status: "pending", SourceTokens: 12345},
-	}, "")
+	}, chapterListFilter{})
 	if err != nil {
 		t.Fatal(err)
 	}

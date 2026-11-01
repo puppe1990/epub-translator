@@ -153,6 +153,16 @@
   position: sticky;
   left: 0;
 }
+.chapter-status-filters + .chapter-status-filters {
+  padding-top: 0;
+  border-top: 0;
+}
+.chapter-model-filters .chapter-filter {
+  text-transform: none;
+  letter-spacing: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-weight: 500;
+}
 .chapter-filter {
   display: inline-flex;
   align-items: center;

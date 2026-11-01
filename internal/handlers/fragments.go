@@ -110,6 +110,18 @@ var fragmentsTemplate = template.Must(template.New("fragments").Parse(`
   <a href="{{ .Href }}" class="chapter-filter{{ if .Active }} is-current{{ end }}"{{ if .Active }} aria-current="page"{{ end }}>{{ .Label }} <span>{{ .Count }}</span></a>
   {{ end }}
 </nav>
+<nav class="chapter-status-filters" aria-label="Filtrar capítulos por provedor">
+  {{ range .ProviderFilters }}
+  <a href="{{ .Href }}" class="chapter-filter{{ if .Active }} is-current{{ end }}"{{ if .Active }} aria-current="page"{{ end }}>{{ .Label }} <span>{{ .Count }}</span></a>
+  {{ end }}
+</nav>
+{{ if .ModelFilters }}
+<nav class="chapter-status-filters chapter-model-filters" aria-label="Filtrar capítulos por modelo">
+  {{ range .ModelFilters }}
+  <a href="{{ .Href }}" class="chapter-filter{{ if .Active }} is-current{{ end }}"{{ if .Active }} aria-current="page"{{ end }}>{{ .Label }} <span>{{ .Count }}</span></a>
+  {{ end }}
+</nav>
+{{ end }}
 {{ if .Chapters }}
 <table class="chapter-table">
   <caption class="sr-only">Capítulos e estado da tradução</caption>
@@ -130,7 +142,7 @@ var fragmentsTemplate = template.Must(template.New("fragments").Parse(`
   </tbody>
 </table>
 {{ else }}
-<p class="chapter-filter-empty">Nenhum capítulo com este status.</p>
+<p class="chapter-filter-empty">Nenhum capítulo neste filtro.</p>
 {{ end }}
 {{ end }}
 `))
@@ -174,16 +186,17 @@ func chapterRowsAt(chapters []models.Chapter, now time.Time) []chapterRow {
 
 // RenderBookFragments devolve o progresso e a lista de capítulos no formato
 // que o SSE morfa (innerHTML de #book-progress e #chapter-list).
-func RenderBookFragments(book models.Book, chapters []models.Chapter, statusFilter string) (progress, list string, err error) {
+func RenderBookFragments(book models.Book, chapters []models.Chapter, filter chapterListFilter) (progress, list string, err error) {
 	progress, err = renderFragment("book-progress", newBookView(book))
 	if err != nil {
 		return "", "", err
 	}
-	status := chapterStatusFilter(statusFilter)
 	list, err = renderFragment("chapter-list", map[string]any{
-		"BookID":   book.ID,
-		"Filters":  chapterFilterChips(book.ID, chapters, status),
-		"Chapters": chapterRows(filterChaptersByStatus(chapters, status)),
+		"BookID":          book.ID,
+		"Filters":         chapterFilterChips(book.ID, chapters, filter),
+		"ProviderFilters": chapterProviderFilterChips(book.ID, chapters, filter),
+		"ModelFilters":    chapterModelFilterChips(book.ID, chapters, filter),
+		"Chapters":        chapterRows(filterChapters(chapters, filter)),
 	})
 	if err != nil {
 		return "", "", err
