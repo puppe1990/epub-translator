@@ -45,6 +45,7 @@ type Deps struct {
 type App struct {
 	config cais.Config
 	store  store.Store
+	runner *pipeline.Runner
 	router *cais.Router
 	server *http.Server
 }
@@ -100,6 +101,7 @@ func New(cfg cais.Config, deps Deps) (*App, error) {
 	return &App{
 		config: cfg,
 		store:  deps.Store,
+		runner: deps.Runner,
 		router: r,
 		server: &http.Server{
 			Addr:              cfg.Port,
@@ -145,13 +147,18 @@ func (a *App) RunContext(ctx context.Context) error {
 
 	select {
 	case <-ctx.Done():
+		if a.runner != nil {
+			_ = a.runner.Drain(2 * time.Second)
+		}
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		if err := a.server.Shutdown(shutdownCtx); err != nil {
-			_ = a.store.Close()
-			return err
+			_ = a.server.Close()
 		}
-		<-errCh
+		select {
+		case <-errCh:
+		case <-time.After(time.Second):
+		}
 		_ = a.store.Close()
 		return nil
 	case err := <-errCh:

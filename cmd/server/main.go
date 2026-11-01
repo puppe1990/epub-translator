@@ -97,8 +97,8 @@ func bootstrapWithConfig(ctx context.Context, cfg cais.Config) (*app.App, error)
 	}
 
 	runner := pipeline.NewRunner(s, translator.Configured{Store: s})
-	// Deploy/SIGTERM mata o processo no meio do capítulo: devolve 'running'
-	// à fila e retoma os livros que estavam traduzindo. Pausados ficam pausados.
+	// SIGTERM drena o capítulo no ar (pending) sem PauseBook; aqui o boot
+	// devolve leftover 'running' à fila e retoma só os livros translating.
 	if err := runner.ResumeInterrupted(); err != nil {
 		_ = s.Close()
 		return nil, fmt.Errorf("resume chapters: %w", err)

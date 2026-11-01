@@ -6,6 +6,7 @@ package pipeline
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/puppe1990/epub-translator/internal/models"
@@ -33,6 +34,7 @@ type bookRun struct {
 	cancel   context.CancelFunc
 	pauseErr error
 	prefer   int64
+	draining atomic.Bool
 }
 
 func NewRunner(s store.Store, translator Translator) *Runner {
@@ -114,6 +116,37 @@ func (r *Runner) Pause(bookID int64) (bool, error) {
 	return true, job.pauseErr
 }
 
+// Drain aborts in-flight provider calls so systemd can stop within
+// TimeoutStopSec. The book stays translating and the running chapter
+// returns to pending — ResumeInterrupted on the next boot picks it up.
+// User Pause still parks as paused.
+func (r *Runner) Drain(timeout time.Duration) error {
+	r.mu.Lock()
+	jobs := make([]*bookRun, 0, len(r.running))
+	for _, job := range r.running {
+		job.draining.Store(true)
+		job.cancel()
+		jobs = append(jobs, job)
+	}
+	r.mu.Unlock()
+	if len(jobs) == 0 {
+		return nil
+	}
+	if timeout <= 0 {
+		timeout = 2 * time.Second
+	}
+	deadline := time.NewTimer(timeout)
+	defer deadline.Stop()
+	for _, job := range jobs {
+		select {
+		case <-job.done:
+		case <-deadline.C:
+			return r.store.ResetRunningChapters()
+		}
+	}
+	return nil
+}
+
 func (r *Runner) run(ctx context.Context, bookID int64, job *bookRun) {
 	defer func() {
 		job.cancel()
@@ -155,6 +188,10 @@ func (r *Runner) run(ctx context.Context, bookID int64, job *bookRun) {
 func (r *Runner) pauseIfCancelled(ctx context.Context, bookID int64, job *bookRun) bool {
 	if ctx.Err() == nil {
 		return false
+	}
+	if job.draining.Load() {
+		job.pauseErr = r.store.ResetRunningChapters()
+		return true
 	}
 	job.pauseErr = r.store.PauseBook(bookID)
 	return true

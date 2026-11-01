@@ -76,3 +76,51 @@ func TestRunnerPauseCancelsCurrentChapterAndResumesOnlyRemaining(t *testing.T) {
 		t.Error("livro concluído não tem execução para cancelar")
 	}
 }
+
+func TestRunner_drainLeavesBookTranslatingSoBootResumes(t *testing.T) {
+	s := newTestStore(t)
+	bookID := seedBook(t, s)
+	chapters, _ := s.ListChapters(bookID)
+	_ = s.SetChapterDone(chapters[0].ID, "<p>Olá one</p>")
+	translator := &cancellableTranslator{started: make(chan struct{}, 10), release: make(chan struct{})}
+	runner := NewRunner(s, translator)
+	if !runner.Start(bookID) {
+		t.Fatal("Start")
+	}
+	select {
+	case <-translator.started:
+	case <-time.After(2 * time.Second):
+		t.Fatal("tradução não iniciou")
+	}
+	if err := runner.Drain(2 * time.Second); err != nil {
+		t.Fatal(err)
+	}
+
+	book, _ := s.FindBook(bookID)
+	if book.Status != "translating" {
+		t.Fatalf("deploy não pode pausar o livro: %+v", book)
+	}
+	chapters, _ = s.ListChapters(bookID)
+	if chapters[0].Status != "done" {
+		t.Fatal("capítulo pronto não pode ser tocado")
+	}
+	if chapters[1].Status != "pending" || chapters[1].Error != "" || chapters[1].Attempts != 0 {
+		t.Fatalf("capítulo no ar deve voltar pra fila, sem falha nem pausa: %+v", chapters[1])
+	}
+	if chapters[2].Status != "pending" {
+		t.Fatalf("restante deve continuar na fila: %+v", chapters[2])
+	}
+
+	close(translator.release)
+	if err := runner.ResumeInterrupted(); err != nil {
+		t.Fatal(err)
+	}
+	runner.Wait(bookID)
+	book, _ = s.FindBook(bookID)
+	if book.Status != "done" || book.DoneChapters != 3 {
+		t.Fatalf("boot deveria retomar: %+v", book)
+	}
+	if translator.calls.Load() != 3 {
+		t.Fatalf("chamadas=%d, want 3 (capítulo interrompido refeito + último)", translator.calls.Load())
+	}
+}
