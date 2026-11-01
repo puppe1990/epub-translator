@@ -117,6 +117,35 @@ func TestBooksShow_emptyStatusFilterKeepsChips(t *testing.T) {
 	}
 }
 
+func TestBooksShow_pausedChapterIsNotListedAsQueued(t *testing.T) {
+	handler, s, _, _ := newBooksHandler(t)
+	bookID, chapters := seedStoredBook(t, s, "")
+	_ = s.SetChapterRunning(chapters[0].ID)
+	if err := s.PauseBook(bookID); err != nil {
+		t.Fatal(err)
+	}
+
+	queued := httptest.NewRecorder()
+	handler.Show(queued, httptest.NewRequest(http.MethodGet, "/books/1?status=pending", nil), bookID)
+	queuePage := queued.Body.String()
+	if !strings.Contains(queuePage, "Nenhum capítulo com este status.") {
+		t.Error("capítulo interrompido não pode aparecer em Na fila")
+	}
+	if !strings.Contains(queuePage, `href="/books/1?status=paused"`) {
+		t.Error("chips precisam de Pausado")
+	}
+
+	parked := httptest.NewRecorder()
+	handler.Show(parked, httptest.NewRequest(http.MethodGet, "/books/1?status=paused", nil), bookID)
+	parkedPage := parked.Body.String()
+	if !strings.Contains(parkedPage, ">Um<") && !strings.Contains(parkedPage, ">Um</span>") {
+		t.Error("filtro paused deveria listar o capítulo estacionado")
+	}
+	if !strings.Contains(parkedPage, `aria-label="Pausado"`) && !strings.Contains(parkedPage, ">Pausado<") {
+		t.Error("capítulo estacionado precisa do rótulo Pausado")
+	}
+}
+
 func TestChapterList_statusFilterChipsCountEveryStatus(t *testing.T) {
 	_, list, err := RenderBookFragments(models.Book{ID: 7}, []models.Chapter{
 		{ID: 1, Position: 1, Title: "Feito", Status: "done"},
@@ -138,8 +167,9 @@ func TestChapterList_statusFilterChipsCountEveryStatus(t *testing.T) {
 		`href="/books/7?status=pending"`,
 		`href="/books/7?status=running"`,
 		`href="/books/7?status=done"`,
+		`href="/books/7?status=paused"`,
 		`href="/books/7?status=failed"`,
-		"Todos", "Na fila", "Traduzindo", "Traduzido", "Falhou",
+		"Todos", "Na fila", "Traduzindo", "Pausado", "Traduzido", "Falhou",
 	} {
 		if !strings.Contains(list, chip) {
 			t.Errorf("chips sem %q", chip)

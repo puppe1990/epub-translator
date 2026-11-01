@@ -18,7 +18,7 @@ Envie um EPUB, acompanhe a tradução **capítulo a capítulo** e baixe o arquiv
 3. **Validação** → `internal/translate.ValidateBody` só aceita resposta com as mesmas tags (sequência normalizada), texto realmente traduzido, tamanho plausível e sem preâmbulo; falhou? o `Service` retenta com um lembrete (3 tentativas), depois marca o capítulo como `failed`.
 4. **Download** → `internal/epub.Rebuild` copia o zip original trocando apenas o miolo de `<body>` dos capítulos traduzidos e o `dc:language` do OPF; o resto (CSS, imagens, nav) passa intacto. O arquivo é montado a partir do banco na hora do download.
 
-Na página do livro, **Pausar** interrompe a requisição atual e salva o estado **Pausado**. O capítulo interrompido volta à fila sem contar como falha. **Retomar tradução** continua pelos pendentes e falhos; os concluídos permanecem intactos. A pausa sobrevive ao reinício do servidor, e os controles acompanham o estado ao vivo por SSE.
+Na página do livro, **Pausar** interrompe a requisição atual e salva o estado **Pausado**. O capítulo interrompido estaciona como **Pausado** (não fica em Na fila) e não conta como falha. **Retomar tradução** devolve os pausados à fila e continua pelos pendentes e falhos; os concluídos permanecem intactos. A pausa sobrevive ao reinício do servidor, e os controles acompanham o estado ao vivo por SSE.
 
 A lista tem filtro por status (Todos / Na fila / Traduzindo / Traduzido / Falhou) via `?status=`. Os chips ficam dentro de `#chapter-list`, então o SSE atualiza as contagens junto com as linhas. Sem query, ou com valor desconhecido, a tabela inteira aparece.
 

@@ -205,6 +205,58 @@ func TestStore_resetDoneChapterPutsItBackInQueue(t *testing.T) {
 	}
 }
 
+func TestStore_pauseParksInterruptedChapterOutOfQueue(t *testing.T) {
+	s := newTestStore(t)
+	bookID := seedBook(t, s)
+	chapters, _ := s.ListChapters(bookID)
+	if err := s.SetChapterRunning(chapters[0].ID); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.PauseBook(bookID); err != nil {
+		t.Fatal(err)
+	}
+	interrupted, _ := s.FindChapter(chapters[0].ID)
+	if interrupted.Status != "paused" {
+		t.Fatalf("status = %q, capítulo interrompido não pode ficar na fila", interrupted.Status)
+	}
+	waiting, _ := s.FindChapter(chapters[1].ID)
+	if waiting.Status != "paused" {
+		t.Fatalf("status = %q, pendente de livro pausado não é fila ativa", waiting.Status)
+	}
+}
+
+func TestStore_parksLeftoverPendingOnPausedBook(t *testing.T) {
+	s := newTestStore(t)
+	bookID := seedBook(t, s)
+	if err := s.SetBookStatus(bookID, "paused"); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.ParkPausedBookQueue(); err != nil {
+		t.Fatal(err)
+	}
+	chapters, _ := s.ListChapters(bookID)
+	for _, chapter := range chapters {
+		if chapter.Status != "paused" {
+			t.Errorf("capítulo %d status = %q, leftover pending em livro pausado deveria estacionar", chapter.Position, chapter.Status)
+		}
+	}
+}
+
+func TestStore_releasePausedChaptersReturnsToQueue(t *testing.T) {
+	s := newTestStore(t)
+	bookID := seedBook(t, s)
+	chapters, _ := s.ListChapters(bookID)
+	_ = s.SetChapterRunning(chapters[0].ID)
+	_ = s.PauseBook(bookID)
+	if err := s.ReleasePausedChapters(bookID); err != nil {
+		t.Fatal(err)
+	}
+	released, _ := s.FindChapter(chapters[0].ID)
+	if released.Status != "pending" {
+		t.Fatalf("status = %q, retomada precisa devolver à fila", released.Status)
+	}
+}
+
 func TestStore_resetRunningChapters(t *testing.T) {
 	s := newTestStore(t)
 	bookID := seedBook(t, s)

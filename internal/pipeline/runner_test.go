@@ -196,6 +196,12 @@ func TestRunner_resumeInterruptedRestartsTranslatingBooks(t *testing.T) {
 	if paused.Status != "paused" {
 		t.Errorf("pausa não sobreviveu ao boot: %+v", paused)
 	}
+	pausedChapters, _ := s.ListChapters(pausedID)
+	for _, chapter := range pausedChapters {
+		if chapter.Status != "paused" {
+			t.Errorf("leftover pending em livro pausado ficou %q", chapter.Status)
+		}
+	}
 	queued, _ := s.FindBook(queuedID)
 	if queued.Status != "pending" || queued.DoneChapters != 0 {
 		t.Errorf("fila não pedida não pode arrancar no boot: %+v", queued)

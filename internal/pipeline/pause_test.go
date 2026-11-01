@@ -52,8 +52,8 @@ func TestRunnerPauseCancelsCurrentChapterAndResumesOnlyRemaining(t *testing.T) {
 		t.Error("pausa precisa preservar início e término da execução interrompida")
 	}
 	for _, chapter := range chapters[1:] {
-		if chapter.Status != "pending" || chapter.Attempts != 0 || chapter.Error != "" {
-			t.Errorf("capítulo interrompido não pode ser falha: %+v", chapter)
+		if chapter.Status != "paused" || chapter.Attempts != 0 || chapter.Error != "" {
+			t.Errorf("capítulo interrompido não pode ser falha nem fila: %+v", chapter)
 		}
 	}
 	_ = s.ResetRunningChapters()

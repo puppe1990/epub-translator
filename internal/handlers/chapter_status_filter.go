@@ -9,7 +9,7 @@ import (
 
 func chapterStatusFilter(raw string) string {
 	switch strings.ToLower(strings.TrimSpace(raw)) {
-	case "pending", "running", "done", "failed":
+	case "pending", "running", "paused", "done", "failed":
 		return strings.ToLower(strings.TrimSpace(raw))
 	default:
 		return ""
@@ -46,6 +46,7 @@ func chapterFilterChips(bookID int64, chapters []models.Chapter, active string) 
 		{Label: "Todos", Count: len(chapters), Href: path, Active: active == ""},
 		statusFilterChip(path, "pending", "Na fila", counts["pending"], active),
 		statusFilterChip(path, "running", "Traduzindo", counts["running"], active),
+		statusFilterChip(path, "paused", "Pausado", counts["paused"], active),
 		statusFilterChip(path, "done", "Traduzido", counts["done"], active),
 		statusFilterChip(path, "failed", "Falhou", counts["failed"], active),
 	}

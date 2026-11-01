@@ -40,11 +40,14 @@ func NewRunner(s store.Store, translator Translator) *Runner {
 }
 
 // ResumeInterrupted devolve capítulos travados em 'running' à fila e retoma
-// só os livros que estavam traduzindo. Pausados e "na fila" ficam como estão
-// — o boot de um deploy não pode virar pausa nem arrancar o que o usuário
-// não pediu.
+// só os livros que estavam traduzindo. Pausados ficam pausados — pending
+// leftover nesses livros estaciona (não fica em Na fila). O boot de um
+// deploy não arranca o que o usuário não pediu.
 func (r *Runner) ResumeInterrupted() error {
 	if err := r.store.ResetRunningChapters(); err != nil {
+		return err
+	}
+	if err := r.store.ParkPausedBookQueue(); err != nil {
 		return err
 	}
 	books, err := r.store.ListBooks()
@@ -124,6 +127,7 @@ func (r *Runner) run(ctx context.Context, bookID int64, job *bookRun) {
 	if err != nil {
 		return
 	}
+	_ = r.store.ReleasePausedChapters(bookID)
 
 	processed := map[int64]struct{}{}
 	started := false

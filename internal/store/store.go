@@ -32,6 +32,8 @@ type Store interface {
 	SetChapterFailed(id int64, message string) error
 	ResetChapter(id int64) error
 	ResetRunningChapters() error
+	ParkPausedBookQueue() error
+	ReleasePausedChapters(bookID int64) error
 	SetBookStatus(id int64, status string) error
 	PauseBook(id int64) error
 	GetSetting(key string) (string, error)

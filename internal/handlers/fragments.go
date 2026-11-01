@@ -63,6 +63,8 @@ func chapterStatusLabel(status string) string {
 		return "Traduzido"
 	case "failed":
 		return "Falhou"
+	case "paused":
+		return "Pausado"
 	default:
 		return "Na fila"
 	}

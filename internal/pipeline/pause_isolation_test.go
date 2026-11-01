@@ -14,7 +14,7 @@ func TestPauseBookDoesNotRequeueOtherBooks(t *testing.T) {
 	}
 	first, _ := s.FindChapter(firstChapters[0].ID)
 	second, _ := s.FindChapter(secondChapters[0].ID)
-	if first.Status != "pending" || second.Status != "running" {
+	if first.Status != "paused" || second.Status != "running" {
 		t.Errorf("pausa deve afetar só seu livro: primeiro=%q, segundo=%q", first.Status, second.Status)
 	}
 }
