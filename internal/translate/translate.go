@@ -40,6 +40,7 @@ type chatMessage struct {
 type chatRequest struct {
 	Model       string        `json:"model"`
 	Temperature float64       `json:"temperature"`
+	MaxTokens   int           `json:"max_tokens,omitempty"`
 	Messages    []chatMessage `json:"messages"`
 }
 
@@ -57,6 +58,7 @@ func (c Client) Translate(ctx context.Context, targetLanguage, content string) (
 	payload, err := json.Marshal(chatRequest{
 		Model:       c.Model,
 		Temperature: 0.2,
+		MaxTokens:   c.maxOutputTokens(),
 		Messages:    c.messages(targetLanguage, content),
 	})
 	if err != nil {
@@ -91,6 +93,13 @@ func (c Client) Translate(ctx context.Context, targetLanguage, content string) (
 	return strings.TrimSpace(decoded.Choices[0].Message.Content), nil
 }
 
+func (c Client) maxOutputTokens() int {
+	if strings.Contains(c.Model, "riva-translate") {
+		return 2048
+	}
+	return 0
+}
+
 func (c Client) messages(targetLanguage, content string) []chatMessage {
 	if strings.Contains(c.Model, "riva-translate") {
 		return []chatMessage{
@@ -107,11 +116,31 @@ func (c Client) messages(targetLanguage, content string) []chatMessage {
 // Service converte erros de validação em retentativas, com um lembrete extra
 // quando a primeira resposta veio torta.
 type Service struct {
-	Client   ChatClient
-	Attempts int
+	Client        ChatClient
+	Attempts      int
+	MaxInputChars int
 }
 
 func (s Service) TranslateBody(ctx context.Context, targetLanguage, body string) (string, error) {
+	parts := splitBody(body, s.MaxInputChars)
+	var combined strings.Builder
+	for _, part := range parts {
+		out, err := s.translateChunk(ctx, targetLanguage, part)
+		if err != nil {
+			return "", err
+		}
+		combined.WriteString(out)
+	}
+	result := combined.String()
+	if len(parts) > 1 {
+		if err := ValidateBody(body, result); err != nil {
+			return "", fmt.Errorf("tradução inválida após juntar %d partes: %w", len(parts), err)
+		}
+	}
+	return result, nil
+}
+
+func (s Service) translateChunk(ctx context.Context, targetLanguage, body string) (string, error) {
 	attempts := s.Attempts
 	if attempts < 1 {
 		attempts = 3
@@ -130,6 +159,9 @@ func (s Service) TranslateBody(ctx context.Context, targetLanguage, body string)
 		}
 		out, err := s.Client.Translate(ctx, targetLanguage, content)
 		if err != nil {
+			if isContextOverflow(err) {
+				return "", err
+			}
 			lastErr = err
 			continue
 		}
@@ -140,6 +172,11 @@ func (s Service) TranslateBody(ctx context.Context, targetLanguage, body string)
 		return out, nil
 	}
 	return "", fmt.Errorf("tradução inválida após %d tentativas: %w", attempts, lastErr)
+}
+
+func isContextOverflow(err error) bool {
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "maximum context length") || strings.Contains(msg, "context length")
 }
 
 // SystemPrompt monta as regras; o idioma-alvo entra por extenso para o modelo

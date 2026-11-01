@@ -67,6 +67,9 @@ func TestClient_Translate_rivaUsesLanguagePairAndBareXHTML(t *testing.T) {
 	if payload.Messages[1].Content != "<p>Hello world.</p>" {
 		t.Errorf("user Riva = %q; o par de idiomas não aceita o prompt literário", payload.Messages[1].Content)
 	}
+	if payload.MaxTokens < 1 {
+		t.Error("Riva precisa de max_tokens > 0; senão o NIM reserva 0 tokens de saída quando o prompt enche a janela")
+	}
 }
 
 func TestClient_Translate_reportsHTTPErrorWithBody(t *testing.T) {

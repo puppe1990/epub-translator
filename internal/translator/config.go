@@ -124,7 +124,8 @@ func (c Configured) Prepare() (pipeline.Translator, models.TranslationDetails, e
 			APIKey:  config.APIKey,
 			Model:   config.Model,
 		},
-		Attempts: 3,
+		Attempts:      3,
+		MaxInputChars: translate.InputCharBudget(config.Model),
 	}
 	return service, models.TranslationDetails{Provider: config.Provider, Model: config.Model}, nil
 }

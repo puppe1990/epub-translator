@@ -2,9 +2,21 @@ package translate
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
+	"unicode/utf8"
 )
+
+type errorClient struct {
+	err   error
+	calls int
+}
+
+func (e *errorClient) Translate(context.Context, string, string) (string, error) {
+	e.calls++
+	return "", e.err
+}
 
 func TestValidateBody_acceptsTranslatedSameTags(t *testing.T) {
 	source := `<h1>Chapter One</h1><p>Hello <i>world</i>, this is a test.</p>`
@@ -138,6 +150,51 @@ func TestService_retriesUntilValid(t *testing.T) {
 	}
 	if client.calls != 2 {
 		t.Errorf("calls = %d, want 2", client.calls)
+	}
+}
+
+type recordingClient struct {
+	payloads []string
+}
+
+func (r *recordingClient) Translate(_ context.Context, _, content string) (string, error) {
+	body := rivaSourceText(content)
+	r.payloads = append(r.payloads, body)
+	return strings.ReplaceAll(body, "Hello", "Olá"), nil
+}
+
+func TestService_translatesLongBodyInChunksUnderBudget(t *testing.T) {
+	first := "<p>" + strings.Repeat("Hello world. ", 6) + "</p>"
+	second := "<p>" + strings.Repeat("Hello there. ", 6) + "</p>"
+	body := first + second
+	client := &recordingClient{}
+	service := Service{Client: client, Attempts: 1, MaxInputChars: utf8.RuneCountInString(first) + 8}
+
+	out, err := service.TranslateBody(context.Background(), "pt-BR", body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(client.payloads) < 2 {
+		t.Fatalf("chamadas = %d, capítulo grande precisa de mais de uma", len(client.payloads))
+	}
+	for i, payload := range client.payloads {
+		if utf8.RuneCountInString(payload) > service.MaxInputChars {
+			t.Errorf("payload %d tem %d runes, orçamento %d", i, utf8.RuneCountInString(payload), service.MaxInputChars)
+		}
+	}
+	if err := ValidateBody(body, out); err != nil {
+		t.Errorf("resultado juntado inválido: %v", err)
+	}
+}
+
+func TestService_doesNotRetryContextLengthError(t *testing.T) {
+	client := &errorClient{err: fmt.Errorf("provedor respondeu 400: maximum context length is 8192 tokens")}
+	_, err := (Service{Client: client, Attempts: 3}).TranslateBody(context.Background(), "pt-BR", "<p>Hello world.</p>")
+	if err == nil {
+		t.Fatal("esperava erro de contexto")
+	}
+	if client.calls != 1 {
+		t.Errorf("calls = %d, overflow de contexto não deve repetir o mesmo payload", client.calls)
 	}
 }
 
