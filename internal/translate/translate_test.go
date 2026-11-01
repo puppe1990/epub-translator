@@ -97,6 +97,20 @@ func TestLanguageName(t *testing.T) {
 	}
 }
 
+func TestRivaLanguagePair(t *testing.T) {
+	cases := []struct{ source, target, want string }{
+		{"", "pt-BR", "en-pt-br"},
+		{"en", "pt", "en-pt-br"},
+		{"en-US", "es", "en-es-es"},
+		{"ja", "zh-CN", "ja-zh-cn"},
+	}
+	for _, tc := range cases {
+		if got := rivaLanguagePair(tc.source, tc.target); got != tc.want {
+			t.Errorf("rivaLanguagePair(%q, %q) = %q, want %q", tc.source, tc.target, got, tc.want)
+		}
+	}
+}
+
 type fakeClient struct {
 	responses []string
 	calls     int

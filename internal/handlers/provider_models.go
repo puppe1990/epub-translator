@@ -45,6 +45,7 @@ func providerModelOptions(slug, selected string) []string {
 		options = []string{"google/gemini-2.5-flash", "google/gemini-2.5-flash-lite", "anthropic/claude-haiku-4.5", "openai/gpt-oss-120b", "openai/gpt-5.4-mini", "deepseek/deepseek-v3.2", "google/gemma-4-31b-it:free"}
 	case "nvidia":
 		options = []string{
+			"nvidia/riva-translate-4b-instruct-v2",
 			"mistralai/mistral-large-4-1t-a52b",
 			"deepseek-ai/deepseek-v4.1-flash",
 			"google/gemma-4-31b-it",

@@ -25,10 +25,11 @@ type ChatClient interface {
 // Client fala o dialeto OpenAI /chat/completions, que Gemini, OpenRouter e
 // Groq também expõem.
 type Client struct {
-	BaseURL string
-	APIKey  string
-	Model   string
-	HTTP    *http.Client
+	BaseURL        string
+	APIKey         string
+	Model          string
+	SourceLanguage string
+	HTTP           *http.Client
 }
 
 type chatMessage struct {
@@ -56,10 +57,7 @@ func (c Client) Translate(ctx context.Context, targetLanguage, content string) (
 	payload, err := json.Marshal(chatRequest{
 		Model:       c.Model,
 		Temperature: 0.2,
-		Messages: []chatMessage{
-			{Role: "system", Content: SystemPrompt(targetLanguage)},
-			{Role: "user", Content: content},
-		},
+		Messages:    c.messages(targetLanguage, content),
 	})
 	if err != nil {
 		return "", fmt.Errorf("montar requisição: %w", err)
@@ -91,6 +89,19 @@ func (c Client) Translate(ctx context.Context, targetLanguage, content string) (
 		return "", fmt.Errorf("provedor não devolveu tradução")
 	}
 	return strings.TrimSpace(decoded.Choices[0].Message.Content), nil
+}
+
+func (c Client) messages(targetLanguage, content string) []chatMessage {
+	if strings.Contains(c.Model, "riva-translate") {
+		return []chatMessage{
+			{Role: "system", Content: rivaLanguagePair(c.SourceLanguage, targetLanguage)},
+			{Role: "user", Content: rivaSourceText(content)},
+		}
+	}
+	return []chatMessage{
+		{Role: "system", Content: SystemPrompt(targetLanguage)},
+		{Role: "user", Content: content},
+	}
 }
 
 // Service converte erros de validação em retentativas, com um lembrete extra
@@ -145,6 +156,58 @@ func SystemPrompt(targetLanguage string) string {
 		"citadas também.\n" +
 		"4. Português natural e fluente, registro de livro publicado, quando o destino for pt-BR.\n" +
 		"5. Responda somente com o XHTML traduzido."
+}
+
+// Riva v2 espera o par de idiomas no system (ex. en-pt-br) e o texto cru no
+// user. Sem esse formato o modelo não traduz como o fine-tune.
+func rivaLanguagePair(source, target string) string {
+	src := rivaLangCode(source)
+	if src == "" {
+		src = "en"
+	}
+	tgt := rivaLangCode(target)
+	if tgt == "" {
+		tgt = "pt-br"
+	}
+	return src + "-" + tgt
+}
+
+func rivaLangCode(tag string) string {
+	normalized := strings.ToLower(strings.ReplaceAll(strings.TrimSpace(tag), "_", "-"))
+	switch {
+	case normalized == "":
+		return ""
+	case strings.HasPrefix(normalized, "pt-pt"):
+		return "pt-pt"
+	case strings.HasPrefix(normalized, "pt"):
+		return "pt-br"
+	case strings.HasPrefix(normalized, "zh-tw") || strings.HasPrefix(normalized, "zh-hant"):
+		return "zh-tw"
+	case strings.HasPrefix(normalized, "zh"):
+		return "zh-cn"
+	case strings.HasPrefix(normalized, "es-us") || strings.HasPrefix(normalized, "es-419"):
+		return "es-us"
+	case strings.HasPrefix(normalized, "es"):
+		return "es-es"
+	default:
+		if i := strings.Index(normalized, "-"); i > 0 {
+			return normalized[:i]
+		}
+		return normalized
+	}
+}
+
+func rivaSourceText(content string) string {
+	body := content
+	if strings.HasPrefix(content, "Traduza para ") {
+		if i := strings.Index(content, "\n\n"); i >= 0 {
+			body = content[i+2:]
+		}
+	}
+	if i := strings.Index(body, "\n\nATENÇÃO:"); i >= 0 {
+		body = body[:i]
+	}
+	return body
 }
 
 // LanguageName mapeia a tag para o nome por extenso usado no prompt.

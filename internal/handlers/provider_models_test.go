@@ -14,6 +14,7 @@ import (
 
 func TestProviderModelOptions_nvidiaListsTranslationCandidates(t *testing.T) {
 	want := []string{
+		"nvidia/riva-translate-4b-instruct-v2",
 		"mistralai/mistral-large-4-1t-a52b",
 		"deepseek-ai/deepseek-v4.1-flash",
 		"google/gemma-4-31b-it",
@@ -21,7 +22,7 @@ func TestProviderModelOptions_nvidiaListsTranslationCandidates(t *testing.T) {
 		"nvidia/nemotron-3.5-lightning-30b-a3b",
 		"z-ai/glm-5.3-flash",
 	}
-	got := providerModelOptions("nvidia", want[0])
+	got := providerModelOptions("nvidia", "mistralai/mistral-large-4-1t-a52b")
 	if !slices.Equal(got, want) {
 		t.Fatalf("catálogo NVIDIA = %v, want %v", got, want)
 	}
@@ -30,7 +31,6 @@ func TestProviderModelOptions_nvidiaListsTranslationCandidates(t *testing.T) {
 		"nvidia/nemotron-3.5-super-vl-120b-a12b",
 		"nvidia/nemotron-3-super-120b-a12b",
 		"nvidia/nemotron-3.5-parse",
-		"nvidia/riva-translate-4b-instruct-v2",
 	} {
 		if slices.Contains(got, excluded) {
 			t.Errorf("lista de tradução não deve oferecer %s", excluded)

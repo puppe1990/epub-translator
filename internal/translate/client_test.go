@@ -46,6 +46,29 @@ func TestClient_Translate_sendsOpenAICompatibleRequest(t *testing.T) {
 	}
 }
 
+func TestClient_Translate_rivaUsesLanguagePairAndBareXHTML(t *testing.T) {
+	var payload chatRequest
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			t.Errorf("payload inválido: %v", err)
+		}
+		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"<p>Olá mundo.</p>"}}]}`))
+	}))
+	defer server.Close()
+
+	client := Client{BaseURL: server.URL, APIKey: "k", Model: "nvidia/riva-translate-4b-instruct-v2", HTTP: server.Client()}
+	wrapped := "Traduza para português do Brasil:\n\n<p>Hello world.</p>\n\nATENÇÃO: a resposta anterior veio torta"
+	if _, err := client.Translate(context.Background(), "pt-BR", wrapped); err != nil {
+		t.Fatal(err)
+	}
+	if payload.Messages[0].Content != "en-pt-br" {
+		t.Errorf("system Riva = %q, want en-pt-br", payload.Messages[0].Content)
+	}
+	if payload.Messages[1].Content != "<p>Hello world.</p>" {
+		t.Errorf("user Riva = %q; o par de idiomas não aceita o prompt literário", payload.Messages[1].Content)
+	}
+}
+
 func TestClient_Translate_reportsHTTPErrorWithBody(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusTooManyRequests)
