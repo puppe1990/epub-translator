@@ -350,7 +350,7 @@ progress::-moz-progress-bar {
     grid-row: 3;
     padding-top: 2px;
   }
-  .chapter-table .chapter-chars {
+  .chapter-table .chapter-tokens {
     grid-column: 3;
     grid-row: 3;
     text-align: right;

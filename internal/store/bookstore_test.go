@@ -2,10 +2,11 @@ package store
 
 import (
 	"errors"
+	"path/filepath"
 	"testing"
-	"unicode/utf8"
 
 	"github.com/puppe1990/epub-translator/internal/models"
+	"github.com/puppe1990/epub-translator/internal/tokens"
 )
 
 func seedBook(t *testing.T, s *SQLiteStore) int64 {
@@ -42,8 +43,12 @@ func TestStore_CreateBookAndChaptersThenList(t *testing.T) {
 	if chapters[0].SourceText != "" {
 		t.Error("a lista não deve carregar os corpos (source_text)")
 	}
-	if chapters[0].SourceChars != utf8.RuneCountInString("<p>One</p>") {
-		t.Errorf("SourceChars = %d, want length of original body", chapters[0].SourceChars)
+	wantTokens := tokens.Count("<p>One</p>")
+	if wantTokens < 1 {
+		t.Fatal("cl100k de <p>One</p> deveria ter pelo menos 1 token")
+	}
+	if chapters[0].SourceTokens != wantTokens {
+		t.Errorf("SourceTokens = %d, want %d cl100k tokens for %q", chapters[0].SourceTokens, wantTokens, "<p>One</p>")
 	}
 
 	book, err := s.FindBook(bookID)
@@ -59,7 +64,7 @@ func TestStore_CreateBookAndChaptersThenList(t *testing.T) {
 	}
 }
 
-func TestStore_ListChaptersCountsUnicodeCharsWithoutLoadingBodies(t *testing.T) {
+func TestStore_ListChaptersCountsTokensWithoutLoadingBodies(t *testing.T) {
 	s := newTestStore(t)
 	bookID, err := s.CreateBook(models.Book{
 		Title: "Livro Unicode", Author: "Autora", SourceLanguage: "pt",
@@ -68,7 +73,7 @@ func TestStore_ListChaptersCountsUnicodeCharsWithoutLoadingBodies(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	body := "<p>ação</p>"
+	body := "hello"
 	if err := s.CreateChapters(bookID, []models.Chapter{
 		{Position: 1, DocPath: "OEBPS/ch01.xhtml", Title: "Um", SourceText: body},
 	}); err != nil {
@@ -82,9 +87,48 @@ func TestStore_ListChaptersCountsUnicodeCharsWithoutLoadingBodies(t *testing.T) 
 	if chapters[0].SourceText != "" {
 		t.Error("a lista não deve carregar os corpos (source_text)")
 	}
-	want := utf8.RuneCountInString(body)
-	if chapters[0].SourceChars != want {
-		t.Errorf("SourceChars = %d, want %d (runes, not bytes)", chapters[0].SourceChars, want)
+	if chapters[0].SourceTokens != 1 {
+		t.Errorf("SourceTokens = %d, want 1 cl100k token for %q", chapters[0].SourceTokens, body)
+	}
+}
+
+func TestStore_backfillSourceTokensOnOpen(t *testing.T) {
+	dsn := filepath.Join(t.TempDir(), "app.db")
+	s, err := NewSQLiteStore(dsn, "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	bookID, err := s.CreateBook(models.Book{
+		Title: "Livro Legado", Author: "Autora", SourceLanguage: "en",
+		TargetLanguage: "pt-BR", Filename: "legado.epub", SourcePath: "data/books/l.epub",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.DB().Exec(
+		`INSERT INTO chapters (book_id, position, doc_path, title, source_text, source_tokens)
+		 VALUES (?, 1, 'OEBPS/ch01.xhtml', 'Um', 'hello', 0)`, bookID); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	reopened, err := NewSQLiteStore(dsn, "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = reopened.Close() })
+
+	chapters, err := reopened.ListChapters(bookID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if chapters[0].SourceText != "" {
+		t.Error("a lista não deve carregar os corpos (source_text)")
+	}
+	if chapters[0].SourceTokens != 1 {
+		t.Errorf("SourceTokens = %d, want 1 após o backfill de hello", chapters[0].SourceTokens)
 	}
 }
 

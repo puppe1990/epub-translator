@@ -5,12 +5,14 @@ go 1.26.4
 require (
 	github.com/microcosm-cc/bluemonday v1.0.27
 	github.com/puppe1990/amarra-cais v0.25.1
+	github.com/tiktoken-go/tokenizer v0.10.0
 	modernc.org/sqlite v1.53.0
 )
 
 require (
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/coder/websocket v1.8.14 // indirect
+	github.com/dlclark/regexp2/v2 v2.5.1 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/css v1.0.1 // indirect

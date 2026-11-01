@@ -82,7 +82,12 @@ func NewSQLiteStore(dsn string, env string) (*SQLiteStore, error) {
 	if cfg.Enabled {
 		cfg.Writer = devlog.MirrorDefault(os.Stdout)
 	}
-	return &SQLiteStore{db: sqllog.Wrap(db, cfg)}, nil
+	store := &SQLiteStore{db: sqllog.Wrap(db, cfg)}
+	if err := store.backfillSourceTokens(); err != nil {
+		_ = store.Close()
+		return nil, err
+	}
+	return store, nil
 }
 
 func (s *SQLiteStore) Sessions() session.Store {

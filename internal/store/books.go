@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/puppe1990/epub-translator/internal/models"
+	"github.com/puppe1990/epub-translator/internal/tokens"
 )
 
 // ErrBookNotFound marca livro inexistente para os handlers responderem 404.
@@ -41,9 +42,9 @@ func (s *SQLiteStore) CreateChapters(bookID int64, chapters []models.Chapter) er
 	defer func() { _ = tx.Rollback() }()
 	for _, chapter := range chapters {
 		if _, err := tx.Exec(
-			`INSERT INTO chapters (book_id, position, doc_path, title, source_text)
-			 VALUES (?, ?, ?, ?, ?)`,
-			bookID, chapter.Position, chapter.DocPath, chapter.Title, chapter.SourceText,
+			`INSERT INTO chapters (book_id, position, doc_path, title, source_text, source_tokens)
+			 VALUES (?, ?, ?, ?, ?, ?)`,
+			bookID, chapter.Position, chapter.DocPath, chapter.Title, chapter.SourceText, tokens.Count(chapter.SourceText),
 		); err != nil {
 			return fmt.Errorf("inserir capítulo %s: %w", chapter.DocPath, err)
 		}
@@ -100,7 +101,7 @@ func (s *SQLiteStore) ListChapters(bookID int64) ([]models.Chapter, error) {
 	rows, err := s.db.Query(
 		`SELECT id, book_id, position, doc_path, title, status, attempts, error,
                  provider, model, started_at, finished_at, duration_ms,
-                 length(source_text) AS source_chars
+                 source_tokens
 		 FROM chapters WHERE book_id = ? ORDER BY position`, bookID)
 	if err != nil {
 		return nil, fmt.Errorf("listar capítulos: %w", err)
@@ -113,7 +114,7 @@ func (s *SQLiteStore) ListChapters(bookID int64) ([]models.Chapter, error) {
 		if err := rows.Scan(&chapter.ID, &chapter.BookID, &chapter.Position, &chapter.DocPath,
 			&chapter.Title, &chapter.Status, &chapter.Attempts, &chapter.Error,
 			&chapter.Provider, &chapter.Model, &chapter.StartedAt, &chapter.FinishedAt, &chapter.DurationMS,
-			&chapter.SourceChars); err != nil {
+			&chapter.SourceTokens); err != nil {
 			return nil, fmt.Errorf("ler capítulo: %w", err)
 		}
 		chapters = append(chapters, chapter)

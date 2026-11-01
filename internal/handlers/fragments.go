@@ -105,13 +105,13 @@ var fragmentsTemplate = template.Must(template.New("fragments").Parse(`
 {{ define "chapter-list" }}
 <table class="chapter-table">
   <caption class="sr-only">Capítulos e estado da tradução</caption>
-  <thead><tr><th scope="col" class="chapter-number">Nº</th><th scope="col">Capítulo</th><th scope="col" class="chapter-chars">Caracteres</th><th scope="col" class="chapter-status">Status</th><th scope="col" class="chapter-duration">Tempo</th><th scope="col" class="chapter-execution">Provedor / modelo</th><th scope="col" class="chapter-attempts">Falhas</th><th scope="col" class="chapter-action"><span class="sr-only">Ações</span></th></tr></thead>
+  <thead><tr><th scope="col" class="chapter-number">Nº</th><th scope="col">Capítulo</th><th scope="col" class="chapter-tokens">Tokens</th><th scope="col" class="chapter-status">Status</th><th scope="col" class="chapter-duration">Tempo</th><th scope="col" class="chapter-execution">Provedor / modelo</th><th scope="col" class="chapter-attempts">Falhas</th><th scope="col" class="chapter-action"><span class="sr-only">Ações</span></th></tr></thead>
   <tbody>
     {{ range .Chapters }}
     <tr class="chapter-row chapter-{{ .Status }}">
       <td class="chapter-number">{{ printf "%02d" .Position }}</td>
       <td class="chapter-title"><span>{{ .Title }}</span>{{ if .Error }}<details class="chapter-error"><summary>Ver erro</summary><p>{{ .Error }}</p></details>{{ end }}</td>
-      <td class="chapter-chars"><span class="sr-only">Caracteres: </span>{{ .CharsLabel }}</td>
+      <td class="chapter-tokens"><span class="sr-only">Tokens: </span>{{ .TokensLabel }}</td>
       <td class="chapter-status"><span class="status-chip {{ .ChipClass }}">{{ .StatusLabel }}</span></td>
       <td class="chapter-duration"><span class="sr-only">Tempo: </span><span id="chapter-time-{{ .ID }}" {{ if eq .DurationLabel "—" }}title="Não registrado"{{ end }}>{{ .DurationLabel }}</span></td>
       <td class="chapter-execution"><span class="chapter-provider" {{ if eq .ProviderLabel "—" }}title="Não registrado"{{ end }}>{{ .ProviderLabel }}</span><code class="chapter-model" title="{{ if .Model }}{{ .Model }}{{ else }}Não registrado{{ end }}">{{ if .Model }}{{ .Model }}{{ else }}—{{ end }}</code></td>
@@ -138,7 +138,7 @@ type chapterRow struct {
 	ProviderLabel string
 	Model         string
 	DurationLabel string
-	CharsLabel    string
+	TokensLabel   string
 }
 
 func chapterRows(chapters []models.Chapter) []chapterRow {
@@ -155,7 +155,7 @@ func chapterRowsAt(chapters []models.Chapter, now time.Time) []chapterRow {
 			Attempts:  chapter.Attempts, Error: chapter.Error,
 			ProviderLabel: chapterProviderLabel(chapter.Provider), Model: chapter.Model,
 			DurationLabel: chapterDurationLabel(chapter, now),
-			CharsLabel:    formatChapterChars(chapter.SourceChars),
+			TokensLabel:   formatChapterChars(chapter.SourceTokens),
 		})
 	}
 	return rows

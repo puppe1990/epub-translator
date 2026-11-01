@@ -178,7 +178,7 @@
   color: var(--muted);
   width: 70px;
 }
-.chapter-chars {
+.chapter-tokens {
   width: 96px;
   text-align: right;
   color: var(--muted);
