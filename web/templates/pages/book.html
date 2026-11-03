@@ -2,7 +2,7 @@
 <section class="book-page">
   <a href="/" class="back-link">← Voltar à biblioteca</a>
   <header class="book-heading">
-    <div class="detail-cover" aria-hidden="true">{{ template "icon_book" . }}<span>{{ .Book.SourceLanguage }} → {{ .Book.TargetLanguage }}</span><small>EPUB</small></div>
+    {{ if .Book.HasCover }}<div class="detail-cover has-cover"><img src="/books/{{ .Book.ID }}/cover" alt="Capa de {{ .Book.Title }}" /></div>{{ else }}<div class="detail-cover" aria-hidden="true">{{ template "icon_book" . }}<span>{{ .Book.SourceLanguage }} → {{ .Book.TargetLanguage }}</span><small>EPUB</small></div>{{ end }}
     <div class="book-heading-text"><p class="eyebrow">SEU LIVRO EM TRADUÇÃO</p><h1>{{ .Book.Title }}</h1><p>{{ if .Book.Author }}{{ .Book.Author }}{{ else }}Autor não informado{{ end }}</p><span class="filename">{{ .Book.Filename }}</span></div>
   </header>
   <div class="book-toolbar">

@@ -42,7 +42,7 @@
     <div class="library-list">
       {{ range .Books }}
       <a href="/books/{{ .ID }}" class="library-row">
-        <span class="mini-cover" aria-hidden="true">{{ template "icon_book" . }}<small>EPUB</small></span>
+        <span class="mini-cover{{ if .HasCover }} has-cover{{ end }}" aria-hidden="true">{{ if .HasCover }}<img src="/books/{{ .ID }}/cover" alt="" loading="lazy" />{{ else }}{{ template "icon_book" . }}<small>EPUB</small>{{ end }}</span>
         <span class="library-book"><strong>{{ .Title }}</strong><span>{{ if .Author }}{{ .Author }}{{ else }}Autor não informado{{ end }}</span><span class="language-pair">{{ .SourceLanguage }} <span>→</span> {{ .TargetLanguage }}</span></span>
         <span class="library-progress"><span>{{ .DoneChapters }} <span class="muted">/ {{ .TotalChapters }} capítulos</span></span><progress value="{{ .Percent }}" max="100" aria-label="Progresso de {{ .Title }}">{{ .Percent }}%</progress></span>
         <span class="status-chip {{ .ChipClass }}">{{ .StatusLabel }}</span>

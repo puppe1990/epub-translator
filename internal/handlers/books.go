@@ -53,7 +53,7 @@ func (h *BooksHandler) Index(w http.ResponseWriter, r *http.Request) {
 		httpx.ServerError(w, err, h.cfg)
 		return
 	}
-	h.renderHome(w, r, bookViews(books), "", http.StatusOK)
+	h.renderHome(w, r, bookViewsWithCovers(books), "", http.StatusOK)
 }
 
 func (h *BooksHandler) renderHome(w http.ResponseWriter, r *http.Request, books []bookView, errMsg string, status int) {
@@ -156,7 +156,7 @@ func (h *BooksHandler) uploadError(w http.ResponseWriter, r *http.Request, messa
 		httpx.ServerError(w, err, h.cfg)
 		return
 	}
-	h.renderHome(w, r, bookViews(books), message, http.StatusUnprocessableEntity)
+	h.renderHome(w, r, bookViewsWithCovers(books), message, http.StatusUnprocessableEntity)
 }
 
 func allowedLanguage(requested string) string {
@@ -198,7 +198,7 @@ func (h *BooksHandler) Show(w http.ResponseWriter, r *http.Request, id int64) {
 	writeView(w, r, h.views, h.cfg, "app", "book", amarraData(r, h.site, map[string]any{
 		"Title":           book.Title,
 		"ActiveNav":       "home",
-		"Book":            newBookView(book),
+		"Book":            withCoverInfo(newBookView(book)),
 		"FilterQuery":     filter.query(),
 		"ProgressHTML":    template.HTML(progress),
 		"ChapterListHTML": template.HTML(list),

@@ -16,6 +16,7 @@ type bookView struct {
 	StatusLabel string
 	ChipClass   string
 	HasPending  bool
+	HasCover    bool
 }
 
 func newBookView(book models.Book) bookView {
