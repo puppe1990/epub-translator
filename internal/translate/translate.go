@@ -337,7 +337,7 @@ func ValidateBody(source, out string) error {
 		len(strings.Fields(outLead)) > len(strings.Fields(sourceLead))*3:
 		return fmt.Errorf("texto inicial muito maior que o original")
 	}
-	if sourceText != "" && !denseShortParagraphs(source) {
+	if sourceText != "" && !denseShortParagraphs(source) && !referenceDense(sourceText) {
 		if err := rejectMixedLanguage(sourceText, outText); err != nil {
 			return err
 		}

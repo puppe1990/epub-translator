@@ -42,6 +42,31 @@ func denseShortParagraphs(html string) bool {
 	return words/paragraphs <= 20
 }
 
+// referenceMarkerRE reconhece notas e bibliografia: anos de publicação,
+// DOI/URL e termos de editoras/periódicos.
+var referenceMarkerRE = regexp.MustCompile(`(?i)\b(?:1[89]\d{2}|20\d{2})\b|\bhttps?://|doi:|\bvol\.|\bpp?\.|\bed\.|\bpress\b|\bjournal\b|\bpublishing\b|\bpublications?\b`)
+
+// Notas/bibliografia mantêm títulos, periódicos e editoras no idioma original
+// (regra 3 do prompt), então o gate de texto misturado acusaria uma tradução
+// correta (Pre-Suasion ref/notes, Influence índice 4). Prosa some ~0–0.3
+// marcadores por 100 palavras; notas passam de 3.
+const (
+	referenceMinMarkers = 10
+	referenceMinWords   = 300
+	referenceRatePer100 = 1.0
+)
+
+// referenceDense informa se o trecho é dominado por citações — nesse caso o
+// gate de texto misturado é pulado.
+func referenceDense(text string) bool {
+	words := len(strings.Fields(text))
+	if words < referenceMinWords {
+		return false
+	}
+	markers := len(referenceMarkerRE.FindAllString(text, -1))
+	return markers >= referenceMinMarkers && float64(markers)*100/float64(words) >= referenceRatePer100
+}
+
 func rejectMixedLanguage(sourceText, outText string) error {
 	srcSents := splitSentences(sourceText)
 	srcWords := make([][]string, 0, len(srcSents))
