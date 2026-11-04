@@ -42,6 +42,10 @@ type Store interface {
 	SaveProvider(provider models.Provider) error
 	GetProvider(slug string) (models.Provider, error)
 	ListProviders() ([]models.Provider, error)
+	FindUser(id int64) (models.User, error)
+	FindUserByEmail(email string) (models.User, error)
+	CreateUser(email, passwordHash string) (int64, error)
+	UpdatePasswordHash(userID int64, passwordHash string) error
 	Sessions() session.Store
 	Ping() error
 	DB() *sql.DB
@@ -78,6 +82,10 @@ func NewSQLiteStore(dsn string, env string) (*SQLiteStore, error) {
 	if err := session.EnsureSQLiteSchema(db); err != nil {
 		_ = db.Close()
 		return nil, fmt.Errorf("sessions schema: %w", err)
+	}
+	if err := seedAdminFromEnv(db); err != nil {
+		_ = db.Close()
+		return nil, err
 	}
 
 	cfg := sqllog.ConfigForEnv(env)

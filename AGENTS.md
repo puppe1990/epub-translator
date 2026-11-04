@@ -17,6 +17,7 @@ App de upload: recebe um EPUB, traduz **documento XHTML por documento** (cada um
 | SSE           | `internal/app/app.go`  | `WriteTimeout: 0` no servidor — stream de progresso é long-lived; mudar isso derruba o morph a cada 30s                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 
 - Upload grava o EPUB em `data/books/book-*.epub` e aponta `books.source_path`; nunca sirva esse caminho direto — download é sempre reconstruído.
+- **Auth**: o estúdio é privado — `routes.go` embrulha tudo em `RequireAuth("/login")` (públicos: `/login`, `/static`, `/health`; `/jobs` segue localhost-only). O usuário admin nasce do seed `ADMIN_EMAIL`/`ADMIN_PASSWORD` no boot (`store.seedAdminFromEnv`, `is_admin=1`, nunca sobrescreve senha existente); cadastro é fechado e a senha troca em `/settings` (POST `/settings/password`).
 - **Capa**: `GET /books/{id}/cover` extrai a imagem do OPF direto do zip original (EPUB3 `cover-image` → `<meta name="cover">` → nome com "cover" → página cover.xhtml com `<img>`); `epub.HasCover` decide entre a imagem e o placeholder verde no card e no cabeçalho.
 - **Metadados da execução**: migração `004_chapter_execution.sql` salva `provider`, `model`, `started_at`, `finished_at` e `duration_ms` por capítulo. `Configured.Prepare` congela a mesma configuração usada pela requisição. Dados representam a última execução, sem inventar histórico legado; o relógio ativo atualiza só `#chapter-time-{id}` por SSE.
 - **Pausa**: `Runner.Pause` cancela o contexto e espera o término da execução; `PauseBook` devolve apenas o capítulo em execução à fila e persiste `books.status=paused`, sem contar falha. Os controles (`#book-actions`) acompanham a pausa por SSE. O cliente vendorizado preserva `MessageEvent.lastEventId` como alvo; `tests/stream.test.cjs` protege esse contrato (rodado por `make ci`).
@@ -123,6 +124,7 @@ Parse bodies with `httpx.ParseFormOrJSON`.
 - CSRF: double-submit cookie `cais_csrf` + form field or `X-CSRF-Token`
 - Flash: **only** `flash.Set` + read via `flash.MessageFromRequest`
 - Dev demo user (when seeded): `demo@example.com` / `password`
+- Admin de verdade: seed `ADMIN_EMAIL`/`ADMIN_PASSWORD` no boot; login em `/login`, saída em `POST /logout`, troca de senha em `/settings`
 
 ## New page / resource
 

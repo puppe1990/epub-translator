@@ -38,6 +38,7 @@
   </head>
   <body data-amarra-shell="{{ if .Site.LoggedIn }}app{{ else }}auth{{ end }}">
     <a class="skip-link" href="#amarra-main">Pular para o conteúdo</a>
+    {{ if .Site.LoggedIn }}
     <aside class="studio-sidebar" aria-label="Navegação principal">
       <a href="/" class="studio-brand" aria-label="epub-translator — biblioteca">
         <span class="brand-icon">{{ template "icon_book" . }}</span>
@@ -55,6 +56,7 @@
         <small>Seus livros, em outros idiomas.</small>
       </div>
       <div class="sidebar-footer">
+        <form action="/logout" method="post" class="sidebar-logout">{{ csrfField .CSRFToken }}<button type="submit" class="sidebar-logout-button">Sair <span>↩</span></button></form>
         <button type="button" class="theme-toggle" aria-label="Alternar tema" amarra-hook="theme" aria-pressed="true" data-amarra-theme-color="#f6f7f2" data-amarra-theme-color-off="#141d1b" data-amarra-theme-on-label="Modo escuro" data-amarra-theme-off-label="Modo claro">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M20.8 13a9 9 0 0 1-9.8-9.8A9 9 0 1 0 20.8 13Z"/></svg>
           <span data-amarra-theme-label>Modo escuro</span>
@@ -62,6 +64,7 @@
         <span class="sidebar-credit">Feito com Amarra <span>↗</span></span>
       </div>
     </aside>
+    {{ end }}
     <div class="studio-workspace">
       <header class="workspace-topbar">
         <span class="workspace-location">Meu estúdio <span>/</span> <span data-studio-location>{{ if eq .ActiveNav "settings" }}Configurações{{ else }}Biblioteca{{ end }}</span></span>

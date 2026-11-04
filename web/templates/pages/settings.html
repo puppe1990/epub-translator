@@ -43,6 +43,17 @@
     {{ end }}
   </div>
   <aside class="settings-note"><span>↳</span><p><strong>Troque sem perder o fio da leitura.</strong> Ao salvar um modelo ou trocar de provedor, a mudança vale no próximo capítulo. O capítulo em andamento continua com a configuração anterior. A disponibilidade dos modelos depende de cada provedor.</p></aside>
+  <header class="section-heading provider-section-heading"><div><h2>Conta</h2><p class="muted">Trocar a senha de acesso ao estúdio.</p></div></header>
+  <article class="provider-card account-card">
+    <header class="provider-heading"><span class="provider-monogram" aria-hidden="true">⌂</span><div><h3>Acesso</h3><span class="provider-key-state">Entrada por email e senha. Novas contas são criadas apenas pelo dono do estúdio.</span></div></header>
+    <form action="/settings/password" method="post" class="provider-form">
+      {{ csrfField .CSRFToken }}
+      <div class="field"><label for="current-password">Senha atual</label><input id="current-password" type="password" name="current_password" autocomplete="current-password" required /></div>
+      <div class="field"><label for="new-password">Nova senha</label><input id="new-password" type="password" name="new_password" autocomplete="new-password" minlength="8" required /></div>
+      <div class="field"><label for="new-password-confirmation">Confirmar nova senha</label><input id="new-password-confirmation" type="password" name="password_confirmation" autocomplete="new-password" minlength="8" required /></div>
+      <button type="submit" class="button button-secondary provider-save">Atualizar senha</button>
+    </form>
+  </article>
   {{ if .EnvKeys }}<details class="environment-details"><summary>Configuração do ambiente</summary><p>{{ .BaseURL }}</p><p>{{ range .EnvKeys }}<code>{{ . }}</code> {{ end }}</p></details>{{ end }}
 </section>
 {{ end }}

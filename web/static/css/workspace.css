@@ -51,6 +51,56 @@
   object-fit: cover;
   display: block;
 }
+/* Login (auth shell): sem sidebar, o workspace ocupa a largura toda. */
+body[data-amarra-shell="auth"] .studio-workspace {
+  margin-left: 0;
+}
+.login-page {
+  display: flex;
+  justify-content: center;
+  padding: 56px 20px 72px;
+}
+.login-card {
+  width: 100%;
+  max-width: 420px;
+  align-self: flex-start;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 34px 30px 30px;
+  box-shadow: 0 24px 60px #18322510;
+}
+.login-subtitle {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.login-form {
+  display: grid;
+  gap: 14px;
+  margin-top: 24px;
+}
+.sidebar-logout {
+  margin: 0 0 10px;
+}
+.sidebar-logout-button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: none;
+  border: none;
+  padding: 6px 12px;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.sidebar-logout-button:hover {
+  color: var(--ink);
+}
 .library-book {
   display: grid;
   gap: 3px;
