@@ -378,8 +378,16 @@ func diffNames(a, b []string) []string {
 	return diff
 }
 
+// nonContentRE remove trechos que não são conteúdo traduzível: comentários
+// HTML (o boilerplate de editora é repassado intacto pelo modelo — copyright
+// da O'Reilly) e o miolo de <code>/<pre> (código e prompts que o modelo mantém
+// literais por natureza — livro técnico). Contá-los como "cópia" envenena o
+// gate de texto misturado.
+var nonContentRE = regexp.MustCompile(`(?is)<!--.*?-->|<code(?:\s[^>]*)?>.*?</code>|<pre(?:\s[^>]*)?>.*?</pre>`)
+
 func plainText(html string) string {
-	text := tagRE.ReplaceAllString(html, " ")
+	text := nonContentRE.ReplaceAllString(html, " ")
+	text = tagRE.ReplaceAllString(text, " ")
 	text = entitiesRE.Replace(text)
 	return strings.Join(strings.Fields(text), " ")
 }
